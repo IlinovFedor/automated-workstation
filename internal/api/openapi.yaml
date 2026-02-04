@@ -1,0 +1,1566 @@
+openapi: 3.0.0
+info:
+  title: pstu-timetable
+  description: pstu-timetable
+  version: 1.0.0
+servers:
+  - url: '/api/v1'
+paths:
+  /subgroups:
+    get:
+      summary: get paginated subgroups
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+            default: 20
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: return paginated subgroups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listSubgroups'
+        '404':
+          description: subgroups not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    post:
+      security:
+        - cookieAuth: [ ]
+      summary: create new subgroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: return created subgroup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subgroup'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: subgroup not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /subgroups/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: return subgroup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subgroup'
+        '404':
+          description: subgroup not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    patch:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: patch subgroup information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: subgroup patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subgroup'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    delete:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: delete subgroup
+      responses:
+        '200':
+          description: subgroup deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subgroup'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /teachers:
+    get:
+      summary: get paginated teachers
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+            default: 20
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: return paginated teachers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listTeachers'
+        '404':
+          description: teachers not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    post:
+      security:
+        - cookieAuth: [ ]
+      summary: create new teacher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: return created teacher
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/teacher'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /teachers/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: return teacher
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/teacher'
+        '404':
+          description: teacher not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    patch:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: patch teacher information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: teacher patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/teacher'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    delete:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: delete teacher
+      responses:
+        '200':
+          description: teacher deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/teacher'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /locations:
+    get:
+      summary: get paginated locations
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+            default: 20
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: return paginated locations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listLocations'
+        '404':
+          description: locations not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    post:
+      security:
+        - cookieAuth: [ ]
+      summary: create new location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: return created location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/location'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /locations/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: return location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/location'
+        '404':
+          description: location not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    patch:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: patch location information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: location patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/location'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    delete:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: delete location
+      responses:
+        '200':
+          description: location deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/location'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /subjects:
+    get:
+      summary: get paginated subjects
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+            default: 20
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: return paginated subjects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listSubjects'
+        '404':
+          description: subjects not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    post:
+      security:
+        - cookieAuth: [ ]
+      summary: create new subject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: return created subject
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subject'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /subjects/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: return subject
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subject'
+        '404':
+          description: subject not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    patch:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: patch subject information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: subject patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subject'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    delete:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: delete subject
+      responses:
+        '200':
+          description: subject deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subject'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /timetables:
+    get:
+      summary: get paginated timetables
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+            default: 20
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: return paginated timetables
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listTimetables'
+        '404':
+          description: timetables not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    post:
+      security:
+        - cookieAuth: [ ]
+      summary: create new timetable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                date_start:
+                  type: string
+                  format: date-time
+                date_end:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: return created timetable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/timetable'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /timetables/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: return timetable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/timetable'
+        '404':
+          description: timetable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    patch:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: patch timetable information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                date_start:
+                  type: string
+                  format: date-time
+                date_end:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: timetable patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/timetable'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    delete:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: delete timetable
+      responses:
+        '200':
+          description: timetable deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/timetable'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /lessons/{table}/{id}:
+    get:
+      summary: get lessons by tables
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ ics, json ]
+            default: json
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              [ subgroups, teachers, locations, subjects ]
+      responses:
+        '200':
+          description: return lessons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/lesson'
+            text/calendar:
+              schema:
+                type: string
+        '404':
+          description: lessons not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /lessons:
+    post:
+      security:
+        - cookieAuth: [ ]
+      summary: create lesson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject_id:
+                  type: integer
+                category:
+                  type: string
+                day:
+                  type: integer
+                  minimum: 0
+                  maximum: 7
+                time_start:
+                  type: integer
+                  minimum: 0
+                  maximum: 1440
+                time_end:
+                  type: integer
+                  minimum: 0
+                  maximum: 1440
+                repeat_rule:
+                  type: string
+                  enum: [ even, odd, each ]
+                timetable_id:
+                  type: integer
+                teacher_location_assignments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      teacher_id:
+                        type: integer
+                      location_id:
+                        type: integer
+                subgroups_id:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: lesson created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/lesson'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /lessons/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: return lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/lesson'
+        '404':
+          description: lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    patch:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      summary: patch lesson information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject_id:
+                  type: integer
+                category:
+                  type: string
+                day:
+                  type: integer
+                  minimum: 0
+                  maximum: 7
+                time_start:
+                  type: integer
+                  minimum: 0
+                  maximum: 1440
+                time_end:
+                  type: integer
+                  minimum: 0
+                  maximum: 1440
+                repeat_rule:
+                  type: string
+                  enum: [ even, odd, each ]
+                timetable_id:
+                  type: integer
+                teacher_location_assignments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      teacher_id:
+                        type: integer
+                      location_id:
+                        type: integer
+                subgroups_id:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: lesson patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/lesson'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+    delete:
+      summary: delete lesson
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - cookieAuth: [ ]
+      responses:
+        '200':
+          description: lesson deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/lesson'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /errors:
+    parameters:
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          default: 20
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+    get:
+      summary: get errors in data assignments
+      responses:
+        '200':
+          description: list of errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listErrors'
+        '404':
+          description: errors not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: intertal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /errors/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      summary: get error in data assignments
+      responses:
+        '200':
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: errors not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: intertal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /import/:
+    post:
+      summary: import data from zip
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: zip archive to import
+      responses:
+        '200':
+          description: files imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/listErrors'
+        '401':
+          description: unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: apiKey
+  schemas:
+    pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+    subgroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    listSubgroups:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/pagination'
+        subgroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/subgroup'
+    teacher:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    listTeachers:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/pagination'
+        teachers:
+          type: array
+          items:
+            $ref: '#/components/schemas/teacher'
+    location:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    listLocations:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/pagination'
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/location'
+    subject:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    listSubjects:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/pagination'
+        subjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/subject'
+    timetable:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+    listTimetables:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/pagination'
+        timetables:
+          type: array
+          items:
+            $ref: '#/components/schemas/timetable'
+    teacherLocationAssignment:
+      type: object
+      properties:
+        teacher:
+          $ref: '#/components/schemas/teacher'
+        location:
+          $ref: '#/components/schemas/location'
+    lesson:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject:
+          $ref: '#/components/schemas/subject'
+        category:
+          type: string
+        day:
+          type: integer
+        time_start:
+          type: integer
+          description: "time of lesson start in minutes from the beginning of the day"
+        time_end:
+          type: integer
+          description: "time of lesson end in minutes from the beginning of the day"
+        repeat_rule:
+          type: integer
+          min: 0
+          max: 2
+        timetable:
+          $ref: '#/components/schemas/timetable'
+        teacher_location_assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/teacherLocationAssignment'
+        subgroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/subgroup'
+    error:
+      type: object
+      properties:
+        message:
+          type: string
+        timetable_id:
+          type: integer
+        location_id:
+          type: integer
+        lesson_id:
+          type: integer
+        subgroup_id:
+          type: integer
+        teacher_id:
+          type: integer
+    listErrors:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/pagination'
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/error'
