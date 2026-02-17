@@ -2,7 +2,9 @@ version: "2"
 sql:
   - engine: "postgresql"
     queries: "query.sql"
-    schema: "migrations/20260129221657_init.sql"
+    schema:
+      - "migrations/20260129221657_init.sql"
+      - "temp_tables.sql"
     gen:
       go:
         package: "repository"

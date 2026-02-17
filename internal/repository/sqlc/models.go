@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Lesson struct {
 	ID          uuid.UUID
-	Hash        string
 	SubjectID   int32
 	Category    string
 	Day         int32
@@ -20,10 +20,27 @@ type Lesson struct {
 	TimeEnd     int32
 	RepeatRule  int32
 	TimetableID int32
+	Hash        string
+}
+
+type LessonsStaging struct {
+	StagingID  uuid.UUID
+	Subject    string
+	Category   string
+	Day        int32
+	TimeStart  int32
+	TimeEnd    int32
+	RepeatRule int32
+	Timetable  string
+	Hash       pgtype.Text
 }
 
 type Location struct {
 	ID   int32
+	Name string
+}
+
+type LocationsStaging struct {
 	Name string
 }
 
@@ -37,8 +54,21 @@ type SubgroupsAssignment struct {
 	SubgroupID int32
 }
 
+type SubgroupsAssignmentsStaging struct {
+	StagingID uuid.UUID
+	Subgroup  string
+}
+
+type SubgroupsStaging struct {
+	Name string
+}
+
 type Subject struct {
 	ID   int32
+	Name string
+}
+
+type SubjectsStaging struct {
 	Name string
 }
 
@@ -53,9 +83,23 @@ type TeacherLocationAssignment struct {
 	LocationID int32
 }
 
+type TeacherLocationAssignmentsStaging struct {
+	StagingID uuid.UUID
+	Teacher   string
+	Location  string
+}
+
+type TeachersStaging struct {
+	Name string
+}
+
 type Timetable struct {
 	ID        int32
 	Name      string
 	DateStart time.Time
 	DateEnd   time.Time
+}
+
+type TimetablesStaging struct {
+	Name string
 }

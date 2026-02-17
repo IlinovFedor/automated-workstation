@@ -9,13 +9,13 @@ import (
 	"context"
 )
 
-// iteratorForCreateLessons implements pgx.CopyFromSource.
-type iteratorForCreateLessons struct {
-	rows                 []CreateLessonsParams
+// iteratorForInsertStagingLessons implements pgx.CopyFromSource.
+type iteratorForInsertStagingLessons struct {
+	rows                 []InsertStagingLessonsParams
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateLessons) Next() bool {
+func (r *iteratorForInsertStagingLessons) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -27,34 +27,34 @@ func (r *iteratorForCreateLessons) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateLessons) Values() ([]interface{}, error) {
+func (r iteratorForInsertStagingLessons) Values() ([]interface{}, error) {
 	return []interface{}{
-		r.rows[0].Hash,
-		r.rows[0].SubjectID,
+		r.rows[0].StagingID,
+		r.rows[0].Subject,
 		r.rows[0].Category,
 		r.rows[0].Day,
 		r.rows[0].TimeStart,
 		r.rows[0].TimeEnd,
 		r.rows[0].RepeatRule,
-		r.rows[0].TimetableID,
+		r.rows[0].Timetable,
 	}, nil
 }
 
-func (r iteratorForCreateLessons) Err() error {
+func (r iteratorForInsertStagingLessons) Err() error {
 	return nil
 }
 
-func (q *Queries) CreateLessons(ctx context.Context, arg []CreateLessonsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"lessons"}, []string{"hash", "subject_id", "category", "day", "time_start", "time_end", "repeat_rule", "timetable_id"}, &iteratorForCreateLessons{rows: arg})
+func (q *Queries) InsertStagingLessons(ctx context.Context, arg []InsertStagingLessonsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"lessons_staging"}, []string{"staging_id", "subject", "category", "day", "time_start", "time_end", "repeat_rule", "timetable"}, &iteratorForInsertStagingLessons{rows: arg})
 }
 
-// iteratorForCreateLocations implements pgx.CopyFromSource.
-type iteratorForCreateLocations struct {
+// iteratorForInsertStagingLocations implements pgx.CopyFromSource.
+type iteratorForInsertStagingLocations struct {
 	rows                 []string
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateLocations) Next() bool {
+func (r *iteratorForInsertStagingLocations) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -66,27 +66,27 @@ func (r *iteratorForCreateLocations) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateLocations) Values() ([]interface{}, error) {
+func (r iteratorForInsertStagingLocations) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0],
 	}, nil
 }
 
-func (r iteratorForCreateLocations) Err() error {
+func (r iteratorForInsertStagingLocations) Err() error {
 	return nil
 }
 
-func (q *Queries) CreateLocations(ctx context.Context, name []string) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"locations"}, []string{"name"}, &iteratorForCreateLocations{rows: name})
+func (q *Queries) InsertStagingLocations(ctx context.Context, name []string) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"locations_staging"}, []string{"name"}, &iteratorForInsertStagingLocations{rows: name})
 }
 
-// iteratorForCreateSubgroups implements pgx.CopyFromSource.
-type iteratorForCreateSubgroups struct {
+// iteratorForInsertStagingSubgroups implements pgx.CopyFromSource.
+type iteratorForInsertStagingSubgroups struct {
 	rows                 []string
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateSubgroups) Next() bool {
+func (r *iteratorForInsertStagingSubgroups) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -98,27 +98,27 @@ func (r *iteratorForCreateSubgroups) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateSubgroups) Values() ([]interface{}, error) {
+func (r iteratorForInsertStagingSubgroups) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0],
 	}, nil
 }
 
-func (r iteratorForCreateSubgroups) Err() error {
+func (r iteratorForInsertStagingSubgroups) Err() error {
 	return nil
 }
 
-func (q *Queries) CreateSubgroups(ctx context.Context, name []string) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"subgroups"}, []string{"name"}, &iteratorForCreateSubgroups{rows: name})
+func (q *Queries) InsertStagingSubgroups(ctx context.Context, name []string) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"subgroups_staging"}, []string{"name"}, &iteratorForInsertStagingSubgroups{rows: name})
 }
 
-// iteratorForCreateSubjects implements pgx.CopyFromSource.
-type iteratorForCreateSubjects struct {
-	rows                 []string
+// iteratorForInsertStagingSubgroupsAssignments implements pgx.CopyFromSource.
+type iteratorForInsertStagingSubgroupsAssignments struct {
+	rows                 []InsertStagingSubgroupsAssignmentsParams
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateSubjects) Next() bool {
+func (r *iteratorForInsertStagingSubgroupsAssignments) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -130,27 +130,60 @@ func (r *iteratorForCreateSubjects) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateSubjects) Values() ([]interface{}, error) {
+func (r iteratorForInsertStagingSubgroupsAssignments) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].StagingID,
+		r.rows[0].Subgroup,
+	}, nil
+}
+
+func (r iteratorForInsertStagingSubgroupsAssignments) Err() error {
+	return nil
+}
+
+func (q *Queries) InsertStagingSubgroupsAssignments(ctx context.Context, arg []InsertStagingSubgroupsAssignmentsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"subgroups_assignments_staging"}, []string{"staging_id", "subgroup"}, &iteratorForInsertStagingSubgroupsAssignments{rows: arg})
+}
+
+// iteratorForInsertStagingSubjects implements pgx.CopyFromSource.
+type iteratorForInsertStagingSubjects struct {
+	rows                 []string
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForInsertStagingSubjects) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForInsertStagingSubjects) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0],
 	}, nil
 }
 
-func (r iteratorForCreateSubjects) Err() error {
+func (r iteratorForInsertStagingSubjects) Err() error {
 	return nil
 }
 
-func (q *Queries) CreateSubjects(ctx context.Context, name []string) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"subjects"}, []string{"name"}, &iteratorForCreateSubjects{rows: name})
+func (q *Queries) InsertStagingSubjects(ctx context.Context, name []string) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"subjects_staging"}, []string{"name"}, &iteratorForInsertStagingSubjects{rows: name})
 }
 
-// iteratorForCreateTeachers implements pgx.CopyFromSource.
-type iteratorForCreateTeachers struct {
-	rows                 []string
+// iteratorForInsertStagingTeacherLocationAssignments implements pgx.CopyFromSource.
+type iteratorForInsertStagingTeacherLocationAssignments struct {
+	rows                 []InsertStagingTeacherLocationAssignmentsParams
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateTeachers) Next() bool {
+func (r *iteratorForInsertStagingTeacherLocationAssignments) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -162,27 +195,61 @@ func (r *iteratorForCreateTeachers) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateTeachers) Values() ([]interface{}, error) {
+func (r iteratorForInsertStagingTeacherLocationAssignments) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].StagingID,
+		r.rows[0].Teacher,
+		r.rows[0].Location,
+	}, nil
+}
+
+func (r iteratorForInsertStagingTeacherLocationAssignments) Err() error {
+	return nil
+}
+
+func (q *Queries) InsertStagingTeacherLocationAssignments(ctx context.Context, arg []InsertStagingTeacherLocationAssignmentsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"teacher_location_assignments_staging"}, []string{"staging_id", "teacher", "location"}, &iteratorForInsertStagingTeacherLocationAssignments{rows: arg})
+}
+
+// iteratorForInsertStagingTeachers implements pgx.CopyFromSource.
+type iteratorForInsertStagingTeachers struct {
+	rows                 []string
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForInsertStagingTeachers) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForInsertStagingTeachers) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0],
 	}, nil
 }
 
-func (r iteratorForCreateTeachers) Err() error {
+func (r iteratorForInsertStagingTeachers) Err() error {
 	return nil
 }
 
-func (q *Queries) CreateTeachers(ctx context.Context, name []string) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"teachers"}, []string{"name"}, &iteratorForCreateTeachers{rows: name})
+func (q *Queries) InsertStagingTeachers(ctx context.Context, name []string) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"teachers_staging"}, []string{"name"}, &iteratorForInsertStagingTeachers{rows: name})
 }
 
-// iteratorForCreateTimetables implements pgx.CopyFromSource.
-type iteratorForCreateTimetables struct {
-	rows                 []CreateTimetablesParams
+// iteratorForInsertStagingTimetables implements pgx.CopyFromSource.
+type iteratorForInsertStagingTimetables struct {
+	rows                 []string
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateTimetables) Next() bool {
+func (r *iteratorForInsertStagingTimetables) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -194,18 +261,16 @@ func (r *iteratorForCreateTimetables) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateTimetables) Values() ([]interface{}, error) {
+func (r iteratorForInsertStagingTimetables) Values() ([]interface{}, error) {
 	return []interface{}{
-		r.rows[0].Name,
-		r.rows[0].DateStart,
-		r.rows[0].DateEnd,
+		r.rows[0],
 	}, nil
 }
 
-func (r iteratorForCreateTimetables) Err() error {
+func (r iteratorForInsertStagingTimetables) Err() error {
 	return nil
 }
 
-func (q *Queries) CreateTimetables(ctx context.Context, arg []CreateTimetablesParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"timetables"}, []string{"name", "date_start", "date_end"}, &iteratorForCreateTimetables{rows: arg})
+func (q *Queries) InsertStagingTimetables(ctx context.Context, name []string) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"timetables_staging"}, []string{"name"}, &iteratorForInsertStagingTimetables{rows: name})
 }
