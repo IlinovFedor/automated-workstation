@@ -23,8 +23,8 @@ CREATE TABLE subjects (
 CREATE TABLE timetables (
                             id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                             name       TEXT        NOT NULL UNIQUE,
-                            date_start TIMESTAMPTZ NOT NULL,
-                            date_end   TIMESTAMPTZ NOT NULL
+                            date_start TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0),
+                            date_end   TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0)
 );
 
 CREATE TABLE lessons (
@@ -63,6 +63,15 @@ CREATE INDEX idx_lessons_hash ON lessons (hash);
 
 CREATE FUNCTION create_staging_tables() RETURNS void AS $$
 BEGIN
+    DROP TABLE IF EXISTS teacher_location_assignments_staging;
+    DROP TABLE IF EXISTS subgroups_assignments_staging;
+    DROP TABLE IF EXISTS lessons_staging;
+    DROP TABLE IF EXISTS timetables_staging;
+    DROP TABLE IF EXISTS subjects_staging;
+    DROP TABLE IF EXISTS locations_staging;
+    DROP TABLE IF EXISTS teachers_staging;
+    DROP TABLE IF EXISTS subgroups_staging;
+
     CREATE TEMP TABLE subgroups_staging (name TEXT NOT NULL UNIQUE);
     CREATE TEMP TABLE teachers_staging (name TEXT NOT NULL UNIQUE);
     CREATE TEMP TABLE locations_staging (name TEXT NOT NULL UNIQUE);
@@ -104,8 +113,7 @@ SET hash = md5(
         ls.time_end::TEXT || '|' ||
         ls.repeat_rule::TEXT || '|' ||
         ls.timetable || '|' ||
-        COALESCE(tla.tla_hash, '')
-           )
+        COALESCE(tla.tla_hash, ''))
     FROM (
         SELECT
             staging_id,
@@ -139,8 +147,8 @@ INSERT INTO subjects (name)
 SELECT name FROM subjects_staging
     ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO timetables (name, date_start, date_end)
-SELECT name, NOW(), NOW() FROM timetables_staging
+INSERT INTO timetables (name)
+SELECT name FROM timetables_staging
     ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO lessons (subject_id, category, day, time_start, time_end, repeat_rule, timetable_id, hash)

@@ -4,7 +4,7 @@ info:
   description: pstu-timetable
   version: 1.0.0
 servers:
-  - url: '/api/v1'
+  - url: 'http://0.0.0.0:8081'
 paths:
   /subgroups:
     get:
@@ -37,8 +37,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listSubgroups'
-        '404':
-          description: subgroups not found
+        '400':
+          description: bad request
           content:
             application/json:
               schema:
@@ -50,18 +50,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
     post:
-      security:
-        - cookieAuth: [ ]
+
       summary: create new subgroup
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/subgroup'
       responses:
         '201':
           description: return created subgroup
@@ -69,6 +65,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subgroup'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -81,8 +83,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
-        '404':
-          description: subgroup not found
+        '409':
+          description: subgroup already exists
           content:
             application/json:
               schema:
@@ -108,6 +110,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subgroup'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: subgroup not found
           content:
@@ -127,18 +135,14 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: patch subgroup information
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/subgroup'
       responses:
         '200':
           description: subgroup patched
@@ -146,6 +150,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subgroup'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -164,6 +174,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '409':
+          description: subgroup already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
@@ -177,8 +193,7 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: delete subgroup
       responses:
         '200':
@@ -187,6 +202,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subgroup'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -242,8 +263,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listTeachers'
-        '404':
-          description: teachers not found
+        '400':
+          description: bad request
           content:
             application/json:
               schema:
@@ -255,18 +276,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
     post:
-      security:
-        - cookieAuth: [ ]
+
       summary: create new teacher
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/teacher'
       responses:
         '201':
           description: return created teacher
@@ -274,6 +291,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/teacher'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -282,6 +305,12 @@ paths:
                 $ref: '#/components/schemas/error'
         '403':
           description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '409':
+          description: teacher already exists
           content:
             application/json:
               schema:
@@ -307,6 +336,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/teacher'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: teacher not found
           content:
@@ -326,18 +361,14 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: patch teacher information
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/teacher'
       responses:
         '200':
           description: teacher patched
@@ -345,6 +376,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/teacher'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -363,6 +400,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '409':
+          description: teacher already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
@@ -376,8 +419,7 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: delete teacher
       responses:
         '200':
@@ -386,6 +428,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/teacher'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -441,8 +489,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listLocations'
-        '404':
-          description: locations not found
+        '400':
+          description: bad request
           content:
             application/json:
               schema:
@@ -454,18 +502,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
     post:
-      security:
-        - cookieAuth: [ ]
+
       summary: create new location
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/location'
       responses:
         '201':
           description: return created location
@@ -473,6 +517,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/location'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -481,6 +531,12 @@ paths:
                 $ref: '#/components/schemas/error'
         '403':
           description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '409':
+          description: location already exists
           content:
             application/json:
               schema:
@@ -506,6 +562,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/location'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: location not found
           content:
@@ -525,18 +587,14 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: patch location information
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/location'
       responses:
         '200':
           description: location patched
@@ -544,6 +602,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/location'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -562,6 +626,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '409':
+          description: location already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
@@ -575,8 +645,7 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: delete location
       responses:
         '200':
@@ -585,6 +654,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/location'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -640,8 +715,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listSubjects'
-        '404':
-          description: subjects not found
+        '400':
+          description: bad request
           content:
             application/json:
               schema:
@@ -653,18 +728,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
     post:
-      security:
-        - cookieAuth: [ ]
+
       summary: create new subject
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/subject'
       responses:
         '201':
           description: return created subject
@@ -672,6 +743,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subject'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -680,6 +757,12 @@ paths:
                 $ref: '#/components/schemas/error'
         '403':
           description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '409':
+          description: subject already exists
           content:
             application/json:
               schema:
@@ -705,6 +788,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subject'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: subject not found
           content:
@@ -724,18 +813,14 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: patch subject information
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
+              $ref: '#/components/schemas/subject'
       responses:
         '200':
           description: subject patched
@@ -743,6 +828,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subject'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -761,6 +852,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '409':
+          description: subject already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
@@ -774,8 +871,7 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: delete subject
       responses:
         '200':
@@ -784,6 +880,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/subject'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -839,8 +941,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listTimetables'
-        '404':
-          description: timetables not found
+        '400':
+          description: bad request
           content:
             application/json:
               schema:
@@ -852,24 +954,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
     post:
-      security:
-        - cookieAuth: [ ]
+
       summary: create new timetable
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                date_start:
-                  type: string
-                  format: date-time
-                date_end:
-                  type: string
-                  format: date-time
+              $ref: '#/components/schemas/timetable'
       responses:
         '201':
           description: return created timetable
@@ -877,6 +969,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/timetable'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -885,6 +983,12 @@ paths:
                 $ref: '#/components/schemas/error'
         '403':
           description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '409':
+          description: timetable already exists
           content:
             application/json:
               schema:
@@ -910,6 +1014,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/timetable'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: timetable not found
           content:
@@ -929,24 +1039,14 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: patch timetable information
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                date_start:
-                  type: string
-                  format: date-time
-                date_end:
-                  type: string
-                  format: date-time
+              $ref: '#/components/schemas/timetable'
       responses:
         '200':
           description: timetable patched
@@ -954,6 +1054,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/timetable'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -972,6 +1078,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '409':
+          description: timetable already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
@@ -985,8 +1097,7 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: delete timetable
       responses:
         '200':
@@ -995,6 +1106,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/timetable'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -1054,6 +1171,12 @@ paths:
             text/calendar:
               schema:
                 type: string
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: lessons not found
           content:
@@ -1068,50 +1191,13 @@ paths:
                 $ref: '#/components/schemas/error'
   /lessons:
     post:
-      security:
-        - cookieAuth: [ ]
       summary: create lesson
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                subject_id:
-                  type: integer
-                category:
-                  type: string
-                day:
-                  type: integer
-                  minimum: 0
-                  maximum: 7
-                time_start:
-                  type: integer
-                  minimum: 0
-                  maximum: 1440
-                time_end:
-                  type: integer
-                  minimum: 0
-                  maximum: 1440
-                repeat_rule:
-                  type: string
-                  enum: [ even, odd, each ]
-                timetable_id:
-                  type: integer
-                teacher_location_assignments:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      teacher_id:
-                        type: integer
-                      location_id:
-                        type: integer
-                subgroups_id:
-                  type: array
-                  items:
-                    type: integer
+              $ref: '#/components/schemas/lesson'
       responses:
         '200':
           description: lesson created
@@ -1119,6 +1205,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/lesson'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -1127,6 +1219,12 @@ paths:
                 $ref: '#/components/schemas/error'
         '403':
           description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        '409':
+          description: lesson already exists
           content:
             application/json:
               schema:
@@ -1152,6 +1250,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/lesson'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: lesson not found
           content:
@@ -1171,50 +1275,14 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       summary: patch lesson information
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                subject_id:
-                  type: integer
-                category:
-                  type: string
-                day:
-                  type: integer
-                  minimum: 0
-                  maximum: 7
-                time_start:
-                  type: integer
-                  minimum: 0
-                  maximum: 1440
-                time_end:
-                  type: integer
-                  minimum: 0
-                  maximum: 1440
-                repeat_rule:
-                  type: string
-                  enum: [ even, odd, each ]
-                timetable_id:
-                  type: integer
-                teacher_location_assignments:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      teacher_id:
-                        type: integer
-                      location_id:
-                        type: integer
-                subgroups_id:
-                  type: array
-                  items:
-                    type: integer
+              $ref: '#/components/schemas/lesson'
       responses:
         '200':
           description: lesson patched
@@ -1222,6 +1290,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/lesson'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -1240,6 +1314,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '409':
+          description: lesson already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
@@ -1254,8 +1334,7 @@ paths:
           required: true
           schema:
             type: integer
-      security:
-        - cookieAuth: [ ]
+
       responses:
         '200':
           description: lesson deleted
@@ -1263,6 +1342,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/lesson'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -1313,8 +1398,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listErrors'
-        '404':
-          description: errors not found
+        '400':
+          description: bad request
           content:
             application/json:
               schema:
@@ -1341,6 +1426,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '404':
           description: errors not found
           content:
@@ -1353,7 +1444,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
-  /import/:
+  /import:
     post:
       summary: import data from zip
       requestBody:
@@ -1376,6 +1467,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/listErrors'
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
         '401':
           description: unauthorized
           content:
@@ -1388,18 +1485,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
-        '404':
-          description: not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/error'
         '500':
           description: internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+
+security:
+  - cookieAuth: [ ]
 
 components:
   securitySchemes:
@@ -1410,13 +1504,18 @@ components:
   schemas:
     pagination:
       type: object
+      required:
+        - total_pages
+        - page
       properties:
-        total:
+        total_pages:
           type: integer
         page:
           type: integer
     subgroup:
       type: object
+      required:
+        - name
       properties:
         id:
           type: integer
@@ -1424,6 +1523,9 @@ components:
           type: string
     listSubgroups:
       type: object
+      required:
+        - pagination
+        - subgroups
       properties:
         pagination:
           $ref: '#/components/schemas/pagination'
@@ -1433,6 +1535,8 @@ components:
             $ref: '#/components/schemas/subgroup'
     teacher:
       type: object
+      required:
+        - name
       properties:
         id:
           type: integer
@@ -1440,6 +1544,9 @@ components:
           type: string
     listTeachers:
       type: object
+      required:
+        - pagination
+        - teachers
       properties:
         pagination:
           $ref: '#/components/schemas/pagination'
@@ -1449,6 +1556,8 @@ components:
             $ref: '#/components/schemas/teacher'
     location:
       type: object
+      required:
+        - name
       properties:
         id:
           type: integer
@@ -1456,6 +1565,9 @@ components:
           type: string
     listLocations:
       type: object
+      required:
+        - pagination
+        - locations
       properties:
         pagination:
           $ref: '#/components/schemas/pagination'
@@ -1465,6 +1577,8 @@ components:
             $ref: '#/components/schemas/location'
     subject:
       type: object
+      required:
+        - name
       properties:
         id:
           type: integer
@@ -1472,6 +1586,9 @@ components:
           type: string
     listSubjects:
       type: object
+      required:
+        - pagination
+        - subjects
       properties:
         pagination:
           $ref: '#/components/schemas/pagination'
@@ -1481,6 +1598,10 @@ components:
             $ref: '#/components/schemas/subject'
     timetable:
       type: object
+      required:
+        - name
+        - start_date
+        - end_date
       properties:
         id:
           type: integer
@@ -1494,6 +1615,9 @@ components:
           format: date-time
     listTimetables:
       type: object
+      required:
+        - pagination
+        - timetables
       properties:
         pagination:
           $ref: '#/components/schemas/pagination'
@@ -1503,6 +1627,9 @@ components:
             $ref: '#/components/schemas/timetable'
     teacherLocationAssignment:
       type: object
+      required:
+        - teacher
+        - location
       properties:
         teacher:
           $ref: '#/components/schemas/teacher'
@@ -1510,6 +1637,16 @@ components:
           $ref: '#/components/schemas/location'
     lesson:
       type: object
+      required:
+        - subject
+        - category
+        - day
+        - time_start
+        - time_end
+        - repeat_rule
+        - timetable
+        - teacher_location_assignments
+        - subgroups
       properties:
         id:
           type: string
@@ -1528,8 +1665,8 @@ components:
           description: "time of lesson end in minutes from the beginning of the day"
         repeat_rule:
           type: integer
-          min: 0
-          max: 2
+          minimum: 0
+          maximum: 2
         timetable:
           $ref: '#/components/schemas/timetable'
         teacher_location_assignments:

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"fmt"
 	"maps"
 	"regexp"
@@ -13,7 +14,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// Configuration constants
 const (
 	sheetName         = "Лист1"
 	timetableCellName = "A1"
@@ -22,7 +22,6 @@ const (
 	unknownValue      = "Unknown"
 )
 
-// Column and row boundaries
 const (
 	firstSubgroupCol  = 3
 	secondSubgroupCol = 4
@@ -32,7 +31,6 @@ const (
 	timeColumnIndex   = 2
 )
 
-// Regular expression patterns
 var (
 	regexTimeNameType    = regexp.MustCompile(`([0-9]{1,2}:[0-9]{1,2})* *(.+?) (\(лек\)|\(пр\)|\(лаб\)|\(кср\)) (.*)`)
 	regexTeacherRole     = regexp.MustCompile(`(асс\.)|(доц\.)|(зав\.)|(куратор)|(научный руководитель)|(ст\. *пр\.)|(пр\.)|(преп\.)|(проф\.)|(профессор)|(тренер-преподаватель)`)
@@ -52,14 +50,12 @@ func (l *Lesson) InsertParams() repo.InsertStagingLessonsParams {
 	return l.insertParams
 }
 
-// pendingData holds assignments that are not yet committed to XlsxUpdater.
-// Used to buffer assignments until we know if the subgroup is a duplicate.
 type pendingData struct {
 	subgroupsAssignments       []repo.InsertStagingSubgroupsAssignmentsParams
 	teacherLocationAssignments []repo.InsertStagingTeacherLocationAssignmentsParams
 }
 
-type XlsxUpdater struct {
+type Parser struct {
 	subgroups                  map[string]struct{}
 	teachers                   map[string]struct{}
 	locations                  map[string]struct{}
@@ -70,8 +66,8 @@ type XlsxUpdater struct {
 	teacherLocationAssignments []repo.InsertStagingTeacherLocationAssignmentsParams
 }
 
-func NewXlsxUpdater() *XlsxUpdater {
-	return &XlsxUpdater{
+func NewParser() *Parser {
+	return &Parser{
 		subgroups:                  make(map[string]struct{}),
 		teachers:                   make(map[string]struct{}),
 		locations:                  make(map[string]struct{}),
@@ -83,22 +79,22 @@ func NewXlsxUpdater() *XlsxUpdater {
 	}
 }
 
-func (x *XlsxUpdater) addSubgroup(name string) { x.subgroups[name] = struct{}{} }
-func (x *XlsxUpdater) GetSubgroups() []string  { return slices.Collect(maps.Keys(x.subgroups)) }
+func (x *Parser) addSubgroup(name string) { x.subgroups[name] = struct{}{} }
+func (x *Parser) Subgroups() []string     { return slices.Collect(maps.Keys(x.subgroups)) }
 
-func (x *XlsxUpdater) addTeacher(name string) { x.teachers[name] = struct{}{} }
-func (x *XlsxUpdater) GetTeachers() []string  { return slices.Collect(maps.Keys(x.teachers)) }
+func (x *Parser) addTeacher(name string) { x.teachers[name] = struct{}{} }
+func (x *Parser) Teachers() []string     { return slices.Collect(maps.Keys(x.teachers)) }
 
-func (x *XlsxUpdater) addLocation(name string) { x.locations[name] = struct{}{} }
-func (x *XlsxUpdater) GetLocations() []string  { return slices.Collect(maps.Keys(x.locations)) }
+func (x *Parser) addLocation(name string) { x.locations[name] = struct{}{} }
+func (x *Parser) Locations() []string     { return slices.Collect(maps.Keys(x.locations)) }
 
-func (x *XlsxUpdater) addSubject(name string) { x.subjects[name] = struct{}{} }
-func (x *XlsxUpdater) GetSubjects() []string  { return slices.Collect(maps.Keys(x.subjects)) }
+func (x *Parser) addSubject(name string) { x.subjects[name] = struct{}{} }
+func (x *Parser) Subjects() []string     { return slices.Collect(maps.Keys(x.subjects)) }
 
-func (x *XlsxUpdater) addTimetable(name string) { x.timetables[name] = struct{}{} }
-func (x *XlsxUpdater) GetTimetables() []string  { return slices.Collect(maps.Keys(x.timetables)) }
+func (x *Parser) addTimetable(name string) { x.timetables[name] = struct{}{} }
+func (x *Parser) Timetables() []string     { return slices.Collect(maps.Keys(x.timetables)) }
 
-func (x *XlsxUpdater) GetLessonsInsertParams() []repo.InsertStagingLessonsParams {
+func (x *Parser) GetLessonsInsertParams() []repo.InsertStagingLessonsParams {
 	params := make([]repo.InsertStagingLessonsParams, len(x.lessons))
 	for i, lesson := range x.lessons {
 		params[i] = lesson.InsertParams()
@@ -106,25 +102,29 @@ func (x *XlsxUpdater) GetLessonsInsertParams() []repo.InsertStagingLessonsParams
 	return params
 }
 
-func (x *XlsxUpdater) GetSubgroupsAssignments() []repo.InsertStagingSubgroupsAssignmentsParams {
+func (x *Parser) GetSubgroupsAssignments() []repo.InsertStagingSubgroupsAssignmentsParams {
 	return x.subgroupsAssignments
 }
 
-func (x *XlsxUpdater) GetTeacherLocationAssignments() []repo.InsertStagingTeacherLocationAssignmentsParams {
+func (x *Parser) GetTeacherLocationAssignments() []repo.InsertStagingTeacherLocationAssignmentsParams {
 	return x.teacherLocationAssignments
 }
 
-func (x *XlsxUpdater) ParseLessonsFromFile(file *excelize.File) error {
+func (x *Parser) ParseLessonsFromBytes(b []byte) error {
+	file, err := excelize.OpenReader(bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
 	timetableName, err := getTimetableTitle(file)
 	if err != nil {
 		return err
 	}
-	x.addTimetable(timetableName)
 
-	// Cache merge cells once per file instead of fetching on every row
 	mergeCells, err := file.GetMergeCells(sheetName)
 	if err != nil {
-		return fmt.Errorf("failed to get merge cells: %w", err)
+		return err
 	}
 
 	allLessons := make([]Lesson, 0)
@@ -134,7 +134,6 @@ func (x *XlsxUpdater) ParseLessonsFromFile(file *excelize.File) error {
 		if err != nil {
 			return err
 		}
-		// НЕ добавляем сразу!
 
 		pending := &pendingData{}
 		lessons, err := x.parseSubgroupLessons(file, mergeCells, colIndex, subgroup, timetableName, pending)
@@ -144,24 +143,23 @@ func (x *XlsxUpdater) ParseLessonsFromFile(file *excelize.File) error {
 
 		if !isDuplicateSubgroup(allLessons, lessons) {
 			allLessons = append(allLessons, lessons...)
-			x.addSubgroup(subgroup) // ← только если не дубликат
+			x.addSubgroup(subgroup)
 			x.subgroupsAssignments = append(x.subgroupsAssignments, pending.subgroupsAssignments...)
 			x.teacherLocationAssignments = append(x.teacherLocationAssignments, pending.teacherLocationAssignments...)
 		}
 	}
 
 	x.lessons = append(x.lessons, allLessons...)
+	x.addTimetable(timetableName)
 	return nil
 }
 
-// isDuplicateSubgroup checks if lessons are duplicates
 func isDuplicateSubgroup(existing, new []Lesson) bool {
 	return slices.EqualFunc(existing, new, func(a, b Lesson) bool {
 		return a.RawName() == b.RawName()
 	})
 }
 
-// getTimetableTitle retrieves the timetable title from the spreadsheet
 func getTimetableTitle(file *excelize.File) (string, error) {
 	timetable, err := file.GetCellValue(sheetName, timetableCellName)
 	if err != nil {
@@ -191,8 +189,7 @@ func getSubgroupName(file *excelize.File, colIndex int) (string, error) {
 	return subgroup, nil
 }
 
-// parseSubgroupLessons parses all lessons for a specific subgroup
-func (x *XlsxUpdater) parseSubgroupLessons(
+func (x *Parser) parseSubgroupLessons(
 	file *excelize.File,
 	mergeCells []excelize.MergeCell,
 	colIndex int,
@@ -218,8 +215,7 @@ func (x *XlsxUpdater) parseSubgroupLessons(
 	return lessons, nil
 }
 
-// parseLessonCell parses a single cell that may contain one or more lessons
-func (x *XlsxUpdater) parseLessonCell(
+func (x *Parser) parseLessonCell(
 	file *excelize.File,
 	mergeCells []excelize.MergeCell,
 	colIndex, rowIndex int,
@@ -263,8 +259,7 @@ func (x *XlsxUpdater) parseLessonCell(
 	return lessons, nil
 }
 
-// parseLesson parses a single lesson string into a Lesson struct
-func (x *XlsxUpdater) parseLesson(
+func (x *Parser) parseLesson(
 	rawName, subgroupName, timetableName string,
 	day int,
 	defaultStartTime time.Time,
@@ -287,7 +282,6 @@ func (x *XlsxUpdater) parseLesson(
 		Timetable:  timetableName,
 	}
 
-	// Subgroup assignment always goes to pending (committed only if not duplicate)
 	pending.subgroupsAssignments = append(pending.subgroupsAssignments, repo.InsertStagingSubgroupsAssignmentsParams{
 		StagingID: stagingID,
 		Subgroup:  subgroupName,
@@ -333,7 +327,6 @@ func (x *XlsxUpdater) parseLesson(
 	return &Lesson{rawName: rawName, insertParams: insertParams}, nil
 }
 
-// getLessonStartTime retrieves the start time for a lesson from the time column
 func getLessonStartTime(file *excelize.File, rowIndex int) (time.Time, error) {
 	cellName, err := excelize.CoordinatesToCellName(timeColumnIndex, rowIndex)
 	if err != nil {
@@ -353,8 +346,6 @@ func getLessonStartTime(file *excelize.File, rowIndex int) (time.Time, error) {
 	return timeStart, nil
 }
 
-// determineRepeatRule calculates the repeat rule based on cached merge cells
-// No error return needed - uses pre-fetched merge cells
 func determineRepeatRule(mergeCells []excelize.MergeCell, colIndex, rowIndex int) (repeatRule int, shouldSkip bool) {
 	mergeHeight := getCellMergeHeight(mergeCells, colIndex, rowIndex)
 
@@ -368,7 +359,6 @@ func determineRepeatRule(mergeCells []excelize.MergeCell, colIndex, rowIndex int
 	return rowIndex%2 + 1, false
 }
 
-// getCellMergeHeight returns the height of a merged cell region using cached merge cells
 func getCellMergeHeight(mergeCells []excelize.MergeCell, colIndex, rowIndex int) int {
 	for _, mergeCell := range mergeCells {
 		if isCellInMergeRange(mergeCell, colIndex, rowIndex) {
@@ -380,7 +370,6 @@ func getCellMergeHeight(mergeCells []excelize.MergeCell, colIndex, rowIndex int)
 	return 1
 }
 
-// isCellInMergeRange checks if a cell is within a merge range
 func isCellInMergeRange(mergeCell excelize.MergeCell, colIndex, rowIndex int) bool {
 	x1, y1, err := excelize.CellNameToCoordinates(mergeCell.GetStartAxis())
 	if err != nil {
@@ -395,7 +384,6 @@ func isCellInMergeRange(mergeCell excelize.MergeCell, colIndex, rowIndex int) bo
 	return x1 <= colIndex && colIndex <= x2 && y1 <= rowIndex && rowIndex <= y2
 }
 
-// TeacherLocationAssignment represents a teacher assigned to a specific location
 type TeacherLocationAssignment struct {
 	teacher  string
 	location string
@@ -443,7 +431,6 @@ func parseTeacherLocations(teachersLocationString string) []TeacherLocationAssig
 	return assignments
 }
 
-// extractTeacherAndLocation splits a segment into teacher and location
 func extractTeacherAndLocation(segment string) (teacher, location string) {
 	matches := regexTeacherLocation.FindStringSubmatch(segment)
 	if matches == nil || len(matches) < 3 {

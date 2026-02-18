@@ -1,164 +1,93 @@
 package main
 
 import (
-	"archive/zip"
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
+	"net/http"
 	_ "net/http/pprof"
-	"time"
-	"timetables/internal/lib"
+	"os"
+	"os/signal"
+	"syscall"
+	"timetables/internal/api"
+	"timetables/internal/application"
+	"timetables/internal/config"
 	"timetables/internal/repository"
-
-	"github.com/google/uuid"
-	"github.com/xuri/excelize/v2"
 )
+
+type ContextHandler struct {
+	slog.Handler
+}
+
+func (h ContextHandler) Handle(ctx context.Context, r slog.Record) error {
+	if method, ok := ctx.Value(application.ContextKeyMethod).(string); ok {
+		r.AddAttrs(slog.String("method", method))
+	}
+	if uri, ok := ctx.Value(application.ContextKeyURI).(string); ok {
+		r.AddAttrs(slog.String("uri", uri))
+	}
+	if addr, ok := ctx.Value(application.ContextKeyAddr).(string); ok {
+		r.AddAttrs(slog.String("addr", addr))
+	}
+	return h.Handler.Handle(ctx, r)
+}
 
 func main() {
 	ctx := context.Background()
-	repo, err := repository.NewRepo(ctx)
+	base := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(ContextHandler{base})
+	slog.SetDefault(logger)
+
+	cfg, err := config.NewConfig()
 	if err != nil {
-		slog.Error("cannot connect to db", "err", err.Error())
+		slog.Error("cannot load config", "error", err.Error())
+		os.Exit(1)
 	}
-	_ = repo
-	reader, err := zip.OpenReader("2025.02.02-timetables.zip")
+	slog.Info("config loaded")
+
+	repo, err := repository.NewRepo(ctx, cfg.PgURL())
 	if err != nil {
-		panic(err)
+		slog.Error("cannot connect to db", "error", err.Error())
+		os.Exit(1)
 	}
-	updater := lib.NewXlsxUpdater()
-	for _, file := range reader.File {
-		/*		if file.Name != "2025-2026 Raspisanie zanyatijj EHTF RIS -25-2b (vesennijj  do smeny).xlsx" {
-				continue
-			}*/
-		open, err := file.Open()
-		if err != nil {
-			panic(err)
+	defer func() {
+		repo.Close()
+		slog.Info("disconnected from db gracefully")
+	}()
+	slog.Info("connected to db")
+
+	app := application.NewApplication(repo, cfg)
+	serveMux := http.NewServeMux()
+	middlewares := []api.StrictMiddlewareFunc{
+		application.AuthMiddleware(cfg),
+		application.LoggerMiddleware(),
+	}
+	strictHandler := api.NewStrictHandler(app, middlewares)
+	api.HandlerFromMux(strictHandler, serveMux)
+
+	server := &http.Server{
+		Handler: serveMux,
+		Addr:    cfg.Addr(),
+	}
+	defer server.Shutdown(ctx)
+
+	go func() {
+		err := server.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			slog.Info("http server is closed gracefully")
+			os.Exit(0)
 		}
 
-		xlsxFile, err := excelize.OpenReader(open)
-		if err != nil {
-			panic(err)
-		}
+		slog.Error("http server is closed abnormally", "error", err.Error())
+		os.Exit(0)
+	}()
+	slog.Info("start http server")
 
-		err = updater.ParseLessonsFromFile(xlsxFile)
-		if err != nil {
-			continue
-		}
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
+	select {
+	case sig := <-stop:
+		slog.Info("shutdown signal received", "signal", sig.String())
 	}
-	fmt.Printf("Lessons: %d\nSubgroups: %d\nTeachers: %d\nLocations: %d\nSubjects: %d\nTimetables: %d\n",
-		len(updater.GetLessonsInsertParams()),
-		len(updater.GetSubgroups()),
-		len(updater.GetTeachers()),
-		len(updater.GetLocations()),
-		len(updater.GetSubjects()),
-		len(updater.GetTimetables()))
-	fmt.Print(updater.GetTimetables())
-	lessons := updater.GetLessonsInsertParams()
-	assignments := updater.GetSubgroupsAssignments()
-
-	// Собираем все staging_id уроков
-	lessonIDs := make(map[uuid.UUID]struct{})
-	for _, l := range lessons {
-		lessonIDs[l.StagingID] = struct{}{}
-	}
-
-	// Ищем assignments без урока
-	for _, a := range assignments {
-		if _, ok := lessonIDs[a.StagingID]; !ok && a.Subgroup == "РИС-25-2б(2пг)" {
-			fmt.Printf("ORPHAN assignment: staging_id=%s subgroup=%s\n", a.StagingID, a.Subgroup)
-		}
-	}
-
-	tx, err := repo.Pool.Begin(ctx)
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := repo.WithTx(tx)
-
-	if err := qtx.CreateStagingTables(ctx); err != nil {
-		panic(err)
-	}
-
-	if _, err := qtx.InsertStagingSubgroups(ctx, updater.GetSubgroups()); err != nil {
-		panic(err)
-	}
-
-	if _, err := qtx.InsertStagingTeachers(ctx, updater.GetTeachers()); err != nil {
-		panic(err)
-	}
-
-	if _, err := qtx.InsertStagingSubjects(ctx, updater.GetSubjects()); err != nil {
-		panic(err)
-	}
-
-	if _, err := qtx.InsertStagingLocations(ctx, updater.GetLocations()); err != nil {
-		panic(err)
-	}
-
-	if _, err := qtx.InsertStagingTimetables(ctx, updater.GetTimetables()); err != nil {
-		panic(err)
-	}
-
-	start := time.Now()
-	if _, err := qtx.InsertStagingLessons(ctx, updater.GetLessonsInsertParams()); err != nil {
-		panic(err)
-	}
-	fmt.Println("InsertStagingLessons:", time.Since(start))
-
-	start = time.Now()
-	if _, err := qtx.InsertStagingSubgroupsAssignments(ctx, updater.GetSubgroupsAssignments()); err != nil {
-		panic(err)
-	}
-	fmt.Println("InsertStagingSubgroupsAssignments:", time.Since(start))
-
-	start = time.Now()
-	if _, err := qtx.InsertStagingTeacherLocationAssignments(ctx, updater.GetTeacherLocationAssignments()); err != nil {
-		panic(err)
-	}
-	fmt.Println("InsertStagingTeacherLocationAssignments:", time.Since(start))
-
-	start = time.Now()
-	if err := qtx.UpdateStagingHash(ctx); err != nil {
-		panic(err)
-	}
-	fmt.Println("UpdateStagingHash:", time.Since(start))
-
-	start = time.Now()
-	if err := qtx.FlushStagingToMain(ctx); err != nil {
-		panic(err)
-	}
-	fmt.Println("FlushStagingToMain:", time.Since(start))
-
-	if err := tx.Commit(ctx); err != nil {
-		panic(err)
-	}
-	end := time.Now()
-	delta := end.Unix() - start.Unix()
-	fmt.Println("delta: ", delta)
-
-	/*	ctx := context.Background()
-
-		repo, err := repository.NewRepo(ctx)
-		if err != nil {
-			slog.Error("cannot connect to db", "err", err.Error())
-		}
-
-		server := application.NewServer(repo)
-
-		r := http.NewServeMux()
-
-		// get an `http.Handler` that we can use
-		sh := api.NewStrictHandler(server, nil)
-		h := api.HandlerFromMux(sh, r)
-		s := &http.Server{
-			Handler: h,
-			Addr:    "0.0.0.0:81",
-		}
-
-		// And we serve HTTP until the world ends.
-		log.Fatal(s.ListenAndServe())*/
-
 }

@@ -1,15 +1,8 @@
 package lib
 
-import (
-	"fmt"
-	"time"
-	"timetables/internal/api"
-
-	ics "github.com/arran4/golang-ical"
-)
-
 const productId = "scheduler-3000"
 
+/*
 func SerializeICS(lessons []api.Lesson, name string) ([]byte, error) {
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
@@ -60,3 +53,4 @@ func SerializeICS(lessons []api.Lesson, name string) ([]byte, error) {
 	}
 	return []byte(cal.Serialize()), nil
 }
+*/

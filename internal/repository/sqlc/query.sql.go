@@ -11,12 +11,76 @@ import (
 	"github.com/google/uuid"
 )
 
+const createLesson = `-- name: CreateLesson :one
+INSERT INTO lessons (id, subject_id, category, day, time_start, time_end, repeat_rule, timetable_id, hash)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, hash)
+RETURNING id
+`
+
+type CreateLessonParams struct {
+	ID          uuid.UUID
+	SubjectID   int32
+	Category    string
+	Day         int32
+	TimeStart   int32
+	TimeEnd     int32
+	RepeatRule  int32
+	TimetableID int32
+}
+
+func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createLesson,
+		arg.ID,
+		arg.SubjectID,
+		arg.Category,
+		arg.Day,
+		arg.TimeStart,
+		arg.TimeEnd,
+		arg.RepeatRule,
+		arg.TimetableID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createStagingTables = `-- name: CreateStagingTables :exec
 SELECT create_staging_tables()
 `
 
 func (q *Queries) CreateStagingTables(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, createStagingTables)
+	return err
+}
+
+const createSubgroupAssignment = `-- name: CreateSubgroupAssignment :exec
+INSERT INTO subgroups_assignments (lesson_id, subgroup_id)
+VALUES ($1, $2)
+`
+
+type CreateSubgroupAssignmentParams struct {
+	LessonID   uuid.UUID
+	SubgroupID int32
+}
+
+func (q *Queries) CreateSubgroupAssignment(ctx context.Context, arg CreateSubgroupAssignmentParams) error {
+	_, err := q.db.Exec(ctx, createSubgroupAssignment, arg.LessonID, arg.SubgroupID)
+	return err
+}
+
+const createTeacherLocationAssignment = `-- name: CreateTeacherLocationAssignment :exec
+INSERT INTO teacher_location_assignments (lesson_id, teacher_id, location_id)
+VALUES ($1, $2, $3)
+`
+
+type CreateTeacherLocationAssignmentParams struct {
+	LessonID   uuid.UUID
+	TeacherID  int32
+	LocationID int32
+}
+
+func (q *Queries) CreateTeacherLocationAssignment(ctx context.Context, arg CreateTeacherLocationAssignmentParams) error {
+	_, err := q.db.Exec(ctx, createTeacherLocationAssignment, arg.LessonID, arg.TeacherID, arg.LocationID)
 	return err
 }
 
