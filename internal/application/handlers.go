@@ -2,14 +2,17 @@ package application
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"timetables/internal/api"
 	"timetables/internal/lib"
 	repository "timetables/internal/repository"
+	sqlc "timetables/internal/repository/sqlc"
+
+	"github.com/google/uuid"
 )
 
 const multipartMaxMemory = 128 * 1024 * 1024
@@ -27,14 +30,12 @@ func (a *Application) GetErrorsId(ctx context.Context, request api.GetErrorsIdRe
 func (a *Application) PostImport(ctx context.Context, request api.PostImportRequestObject) (api.PostImportResponseObject, error) {
 	switch ctx.Value(apiRole) {
 	case roleUnauthorized:
-		message := "unauthorized"
 		return api.PostImport401JSONResponse{
-			Message: &message,
+			Code: api.CODEUNAUTHORIZED,
 		}, nil
 	case roleUser:
-		message := "forbidden"
 		return api.PostImport403JSONResponse{
-			Message: &message,
+			Code: api.CODEFORBIDDEN,
 		}, nil
 	case roleAdmin:
 		break
@@ -42,15 +43,15 @@ func (a *Application) PostImport(ctx context.Context, request api.PostImportRequ
 
 	files, err := unarchive(request)
 	if err != nil {
-		message := fmt.Sprintf("cannot read archive: %s", err.Error())
-		slog.ErrorContext(ctx, "cannot read archive", "error", err.Error())
-		return api.PostImport400JSONResponse{Message: &message}, nil
+		message := err.Error()
+		slog.ErrorContext(ctx, err.Error())
+		return api.PostImport400JSONResponse{Code: api.CODEWRONGARCHIVE, Message: &message}, nil
 	}
 	parser := lib.NewParser()
 
 	parseErrors := make([]api.Error, 0)
-	page := 0
-	totalPages := 1
+	var page int32 = 1
+	var totalPages int32 = 1
 	pagination := api.Pagination{
 		Page:       page,
 		TotalPages: totalPages,
@@ -58,16 +59,17 @@ func (a *Application) PostImport(ctx context.Context, request api.PostImportRequ
 	for fileName, file := range files {
 		err := parser.ParseLessonsFromBytes(file)
 		if err != nil {
-			message := fmt.Sprintf("cannot parse file \"%s\" with error: %s", fileName, err.Error())
-			slog.ErrorContext(ctx, "cannot parse file", "fileName", fileName, "error", err.Error())
-			parseErrors = append(parseErrors, api.Error{Message: &message})
+			message := err.Error()
+			slog.ErrorContext(ctx, err.Error(), "fileName", fileName)
+			parseErrors = append(parseErrors, api.Error{Code: api.CODEWRONGXLSX, Message: &message, File: &fileName})
 			continue
 		}
 	}
 	if err := insertIntoDB(ctx, a.repo, parser); err != nil {
-		message := fmt.Sprintf("cannot insert data to db: %s", err)
-		slog.ErrorContext(ctx, "cannot insert data to db", "error", err.Error())
+		slog.ErrorContext(ctx, err.Error())
+		message := err.Error()
 		return api.PostImport500JSONResponse{
+			Code:    api.CODEDBERROR,
 			Message: &message,
 		}, err
 	}
@@ -169,28 +171,603 @@ func insertIntoDB(ctx context.Context, repo *repository.Repo, updater *lib.Parse
 }
 
 func (a *Application) PostLessons(ctx context.Context, request api.PostLessonsRequestObject) (api.PostLessonsResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PostLessons401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PostLessons403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	tx, err := a.repo.Pool.Begin(ctx)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PostLessons500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := a.repo.WithTx(tx)
+
+	lessonId, err := qtx.CreateLesson(ctx, sqlc.CreateLessonParams{
+		SubjectID:   request.Body.Subject.Id,
+		Category:    request.Body.Category,
+		Day:         request.Body.Day,
+		TimeStart:   request.Body.TimeStart,
+		TimeEnd:     request.Body.TimeEnd,
+		RepeatRule:  request.Body.RepeatRule,
+		TimetableID: request.Body.Timetable.Id,
+	})
+	if err != nil {
+		message := err.Error()
+		return api.PostLessons400JSONResponse{
+			Code:    api.CODEBADREQUEST,
+			Message: &message,
+		}, nil
+	}
+
+	saParams := make([]sqlc.CreateSubgroupAssignmentsParams, len(request.Body.Subgroups))
+	for i, subgroup := range request.Body.Subgroups {
+		saParams[i] = sqlc.CreateSubgroupAssignmentsParams{
+			LessonID:   lessonId,
+			SubgroupID: subgroup.Id,
+		}
+	}
+
+	_, err = qtx.CreateSubgroupAssignments(ctx, saParams)
+	if err != nil {
+		message := err.Error()
+		return api.PostLessons400JSONResponse{
+			Code:    api.CODEBADREQUEST,
+			Message: &message,
+		}, nil
+	}
+
+	tlaParams := make([]sqlc.CreateTeacherLocationAssignmentsParams, len(request.Body.TeacherLocationAssignments))
+	for i, assignment := range request.Body.TeacherLocationAssignments {
+		tlaParams[i] = sqlc.CreateTeacherLocationAssignmentsParams{
+			LessonID:   lessonId,
+			TeacherID:  assignment.Teacher.Id,
+			LocationID: assignment.Location.Id,
+		}
+	}
+
+	_, err = qtx.CreateTeacherLocationAssignments(ctx, tlaParams)
+	if err != nil {
+		message := err.Error()
+		return api.PostLessons400JSONResponse{
+			Code:    api.CODEBADREQUEST,
+			Message: &message,
+		}, nil
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PostLessons500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	response := api.PostLessons200JSONResponse(*request.Body)
+	response.Id = lessonId
+	return response, nil
 }
 
 func (a *Application) DeleteLessonsId(ctx context.Context, request api.DeleteLessonsIdRequestObject) (api.DeleteLessonsIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.DeleteLessonsId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.DeleteLessonsId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	if err := a.repo.DeleteLesson(ctx, request.Id); err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.DeleteLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.DeleteLessonsId200Response{}, nil
 }
 
 func (a *Application) GetLessonsId(ctx context.Context, request api.GetLessonsIdRequestObject) (api.GetLessonsIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	lesson, err := getApiLesson(ctx, a.repo, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.GetLessonsId200JSONResponse(lesson), nil
+}
+
+func getApiLesson(ctx context.Context, repo *repository.Repo, id uuid.UUID) (api.Lesson, error) {
+	repoLesson, err := repo.GetLesson(ctx, id)
+	if err != nil {
+		return api.Lesson{}, err
+	}
+	repoSubgroups, err := repo.GetLessonSubgroups(ctx, id)
+	if err != nil {
+		return api.Lesson{}, err
+	}
+	apiSubgroups := make([]api.Subgroup, len(repoSubgroups))
+	for i, subgroup := range repoSubgroups {
+		apiSubgroups[i] = api.Subgroup{
+			Id:   subgroup.SubgroupID,
+			Name: subgroup.SubgroupName,
+		}
+	}
+
+	repoAssignmnents, err := repo.GetLessonAssignments(ctx, id)
+	if err != nil {
+		return api.Lesson{}, err
+	}
+	apiAssignments := make([]api.TeacherLocationAssignment, len(repoAssignmnents))
+	for i, assignment := range repoAssignmnents {
+		apiAssignments[i] = api.TeacherLocationAssignment{
+			Location: api.Location{
+				Id:   assignment.LocationID,
+				Name: assignment.LocationName,
+			},
+			Teacher: api.Teacher{
+				Id:   assignment.TeacherID,
+				Name: assignment.TeacherName,
+			},
+		}
+	}
+
+	return api.Lesson{
+		Category:   repoLesson.Category,
+		Day:        repoLesson.Day,
+		Id:         id,
+		RepeatRule: repoLesson.RepeatRule,
+		Subgroups:  apiSubgroups,
+		Subject: api.Subject{
+			Id:   repoLesson.SubjectID,
+			Name: repoLesson.SubjectName,
+		},
+		TeacherLocationAssignments: apiAssignments,
+		TimeEnd:                    repoLesson.TimeEnd,
+		TimeStart:                  repoLesson.TimeStart,
+		Timetable: api.Timetable{
+			EndDate:   repoLesson.DateEnd,
+			Id:        repoLesson.TimetableID,
+			Name:      repoLesson.TimetableName,
+			StartDate: repoLesson.DateStart,
+		},
+	}, nil
 }
 
 func (a *Application) PatchLessonsId(ctx context.Context, request api.PatchLessonsIdRequestObject) (api.PatchLessonsIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PatchLessonsId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PatchLessonsId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	tx, err := a.repo.Pool.Begin(ctx)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := a.repo.WithTx(tx)
+
+	err = qtx.DeleteLessonAssignments(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	repoSubgroups := make([]sqlc.CreateSubgroupAssignmentsParams, len(request.Body.Subgroups))
+	for i, subgroup := range request.Body.Subgroups {
+		repoSubgroups[i] = sqlc.CreateSubgroupAssignmentsParams{
+			LessonID:   request.Id,
+			SubgroupID: subgroup.Id,
+		}
+	}
+
+	repoAssignments := make([]sqlc.CreateTeacherLocationAssignmentsParams, len(request.Body.TeacherLocationAssignments))
+	for i, assignment := range request.Body.TeacherLocationAssignments {
+		repoAssignments[i] = sqlc.CreateTeacherLocationAssignmentsParams{
+			LessonID:   request.Id,
+			TeacherID:  assignment.Teacher.Id,
+			LocationID: assignment.Location.Id,
+		}
+	}
+
+	if _, err = qtx.CreateSubgroupAssignments(ctx, repoSubgroups); err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	if _, err = qtx.CreateTeacherLocationAssignments(ctx, repoAssignments); err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	if err = qtx.PatchLesson(ctx, sqlc.PatchLessonParams{
+		SubjectID:   request.Body.Subject.Id,
+		Category:    request.Body.Category,
+		Day:         request.Body.Day,
+		TimeStart:   request.Body.TimeStart,
+		TimeEnd:     request.Body.TimeEnd,
+		RepeatRule:  request.Body.RepeatRule,
+		TimetableID: request.Body.Timetable.Id,
+		ID:          request.Id,
+	}); err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchLessonsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	response := api.PatchLessonsId200JSONResponse(*request.Body)
+	response.Id = request.Id
+	return response, nil
 }
 
 func (a *Application) GetLessonsTableId(ctx context.Context, request api.GetLessonsTableIdRequestObject) (api.GetLessonsTableIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	lessons := make([]api.Lesson, 0)
+	var err error = nil
+	switch request.Table {
+	case api.Teachers:
+		lessons, err = getLessonByTeacherId(ctx, a.repo, request)
+	case api.Subgroups:
+		lessons, err = getLessonBySubgroupId(ctx, a.repo, request)
+	case api.Locations:
+		lessons, err = getLessonByLocationId(ctx, a.repo, request)
+	case api.Subjects:
+		lessons, err = getLessonBySubjectId(ctx, a.repo, request)
+	default:
+		return api.GetLessonsTableId400JSONResponse{
+			Code: api.CODEBADREQUEST,
+		}, nil
+	}
+
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetLessonsTableId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	if request.Params.Format == nil || *request.Params.Format == api.Json {
+		return api.GetLessonsTableId200JSONResponse(lessons), nil
+	} else if *request.Params.Format == api.Ics {
+		ics, err := lib.SerializeICS(lessons, "KAL")
+		if err != nil {
+			message := err.Error()
+			return api.GetLessonsTableId500JSONResponse{
+				Code:    api.CODECANNOTSERIALIZEICS,
+				Message: &message,
+			}, nil
+		}
+		reader := bytes.NewReader(ics)
+		return api.GetLessonsTableId200TextcalendarResponse{
+			Body:          reader,
+			ContentLength: reader.Size(),
+		}, nil
+	}
+
+	return api.GetLessonsTableId400JSONResponse{
+		Code: api.CODEBADREQUEST,
+	}, nil
+}
+
+func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+	lessons := make(map[uuid.UUID]*api.Lesson, 0)
+	rowsLessons, err := repo.GetLessonsByTeacherId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsLessons {
+		lesson := api.Lesson{
+			Category:   row.Category,
+			Day:        row.Day,
+			Id:         row.ID,
+			RepeatRule: row.RepeatRule,
+			Subgroups:  make([]api.Subgroup, 0),
+			Subject: api.Subject{
+				Id:   row.SubjectID,
+				Name: row.SubjectName,
+			},
+			TeacherLocationAssignments: make([]api.TeacherLocationAssignment, 0),
+			TimeEnd:                    row.TimeEnd,
+			TimeStart:                  row.TimeStart,
+			Timetable: api.Timetable{
+				EndDate:   row.DateEnd,
+				Id:        row.TimetableID,
+				Name:      row.TimetableName,
+				StartDate: row.DateStart,
+			},
+		}
+		lessons[row.ID] = &lesson
+	}
+
+	rowsSubgroups, err := repo.GetLessonsSubgroupsByTeacherId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsSubgroups {
+		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
+			Id:   row.SubgroupID,
+			Name: row.SubgroupName,
+		})
+	}
+
+	rowsAssignments, err := repo.GetLessonAssignmentsByTeacherId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsAssignments {
+		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
+			Location: api.Location{
+				Id:   row.LocationID,
+				Name: row.LocationName,
+			},
+			Teacher: api.Teacher{
+				Id:   row.TeacherID,
+				Name: row.TeacherName,
+			},
+		})
+	}
+	result := make([]api.Lesson, len(lessons))
+	i := 0
+	for _, lesson := range lessons {
+		result[i] = *lesson
+		i++
+	}
+	return result, nil
+}
+
+func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+	lessons := make(map[uuid.UUID]*api.Lesson, 0)
+	rowsLessons, err := repo.GetLessonsBySubgroupId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsLessons {
+		lesson := api.Lesson{
+			Category:   row.Category,
+			Day:        row.Day,
+			Id:         row.ID,
+			RepeatRule: row.RepeatRule,
+			Subgroups:  make([]api.Subgroup, 0),
+			Subject: api.Subject{
+				Id:   row.SubjectID,
+				Name: row.SubjectName,
+			},
+			TeacherLocationAssignments: make([]api.TeacherLocationAssignment, 0),
+			TimeEnd:                    row.TimeEnd,
+			TimeStart:                  row.TimeStart,
+			Timetable: api.Timetable{
+				EndDate:   row.DateEnd,
+				Id:        row.TimetableID,
+				Name:      row.TimetableName,
+				StartDate: row.DateStart,
+			},
+		}
+		lessons[row.ID] = &lesson
+	}
+
+	rowsSubgroups, err := repo.GetLessonsSubgroupsBySubgroupId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsSubgroups {
+		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
+			Id:   row.SubgroupID,
+			Name: row.SubgroupName,
+		})
+	}
+
+	rowsAssignments, err := repo.GetLessonAssignmentsBySubgroupId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsAssignments {
+		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
+			Location: api.Location{
+				Id:   row.LocationID,
+				Name: row.LocationName,
+			},
+			Teacher: api.Teacher{
+				Id:   row.TeacherID,
+				Name: row.TeacherName,
+			},
+		})
+	}
+	result := make([]api.Lesson, len(lessons))
+	i := 0
+	for _, lesson := range lessons {
+		result[i] = *lesson
+		i++
+	}
+	return result, nil
+}
+
+func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+	lessons := make(map[uuid.UUID]*api.Lesson, 0)
+	rowsLessons, err := repo.GetLessonsByLocationsId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsLessons {
+		lesson := api.Lesson{
+			Category:   row.Category,
+			Day:        row.Day,
+			Id:         row.ID,
+			RepeatRule: row.RepeatRule,
+			Subgroups:  make([]api.Subgroup, 0),
+			Subject: api.Subject{
+				Id:   row.SubjectID,
+				Name: row.SubjectName,
+			},
+			TeacherLocationAssignments: make([]api.TeacherLocationAssignment, 0),
+			TimeEnd:                    row.TimeEnd,
+			TimeStart:                  row.TimeStart,
+			Timetable: api.Timetable{
+				EndDate:   row.DateEnd,
+				Id:        row.TimetableID,
+				Name:      row.TimetableName,
+				StartDate: row.DateStart,
+			},
+		}
+		lessons[row.ID] = &lesson
+	}
+
+	rowsSubgroups, err := repo.GetLessonsSubgroupsByLocationId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsSubgroups {
+		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
+			Id:   row.SubgroupID,
+			Name: row.SubgroupName,
+		})
+	}
+
+	rowsAssignments, err := repo.GetLessonAssignmentsByLocationId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsAssignments {
+		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
+			Location: api.Location{
+				Id:   row.LocationID,
+				Name: row.LocationName,
+			},
+			Teacher: api.Teacher{
+				Id:   row.TeacherID,
+				Name: row.TeacherName,
+			},
+		})
+	}
+	result := make([]api.Lesson, len(lessons))
+	i := 0
+	for _, lesson := range lessons {
+		result[i] = *lesson
+		i++
+	}
+	return result, nil
+}
+
+func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+	lessons := make(map[uuid.UUID]*api.Lesson, 0)
+	rowsLessons, err := repo.GetLessonsBySubjectId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsLessons {
+		lesson := api.Lesson{
+			Category:   row.Category,
+			Day:        row.Day,
+			Id:         row.ID,
+			RepeatRule: row.RepeatRule,
+			Subgroups:  make([]api.Subgroup, 0),
+			Subject: api.Subject{
+				Id:   row.SubjectID,
+				Name: row.SubjectName,
+			},
+			TeacherLocationAssignments: make([]api.TeacherLocationAssignment, 0),
+			TimeEnd:                    row.TimeEnd,
+			TimeStart:                  row.TimeStart,
+			Timetable: api.Timetable{
+				EndDate:   row.DateEnd,
+				Id:        row.TimetableID,
+				Name:      row.TimetableName,
+				StartDate: row.DateStart,
+			},
+		}
+		lessons[row.ID] = &lesson
+	}
+
+	rowsSubgroups, err := repo.GetLessonsSubgroupsBySubjectId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsSubgroups {
+		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
+			Id:   row.SubgroupID,
+			Name: row.SubgroupName,
+		})
+	}
+
+	rowsAssignments, err := repo.GetLessonAssignmentsBySubjectId(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rowsAssignments {
+		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
+			Location: api.Location{
+				Id:   row.LocationID,
+				Name: row.LocationName,
+			},
+			Teacher: api.Teacher{
+				Id:   row.TeacherID,
+				Name: row.TeacherName,
+			},
+		})
+	}
+	result := make([]api.Lesson, len(lessons))
+	i := 0
+	for _, lesson := range lessons {
+		result[i] = *lesson
+		i++
+	}
+	return result, nil
 }
 
 func (a *Application) GetLocations(ctx context.Context, request api.GetLocationsRequestObject) (api.GetLocationsResponseObject, error) {

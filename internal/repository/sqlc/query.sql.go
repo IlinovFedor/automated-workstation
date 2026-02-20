@@ -7,18 +7,27 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createLesson = `-- name: CreateLesson :one
-INSERT INTO lessons (id, subject_id, category, day, time_start, time_end, repeat_rule, timetable_id, hash)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, hash)
+INSERT INTO lessons (subject_id, category, day, time_start, time_end, repeat_rule, timetable_id, hash)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        md5(
+                (SELECT name FROM subjects WHERE id = $1) || '|' ||
+                $2 || '|' ||
+                $3::TEXT || '|' ||
+                $4::TEXT || '|' ||
+                $5::TEXT || '|' ||
+                $6::TEXT || '|' ||
+                (SELECT name FROM timetables WHERE id = timetable_id) || '|' ||
+                ''))
 RETURNING id
 `
 
 type CreateLessonParams struct {
-	ID          uuid.UUID
 	SubjectID   int32
 	Category    string
 	Day         int32
@@ -30,7 +39,6 @@ type CreateLessonParams struct {
 
 func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, createLesson,
-		arg.ID,
 		arg.SubjectID,
 		arg.Category,
 		arg.Day,
@@ -53,34 +61,32 @@ func (q *Queries) CreateStagingTables(ctx context.Context) error {
 	return err
 }
 
-const createSubgroupAssignment = `-- name: CreateSubgroupAssignment :exec
-INSERT INTO subgroups_assignments (lesson_id, subgroup_id)
-VALUES ($1, $2)
-`
-
-type CreateSubgroupAssignmentParams struct {
+type CreateSubgroupAssignmentsParams struct {
 	LessonID   uuid.UUID
 	SubgroupID int32
 }
 
-func (q *Queries) CreateSubgroupAssignment(ctx context.Context, arg CreateSubgroupAssignmentParams) error {
-	_, err := q.db.Exec(ctx, createSubgroupAssignment, arg.LessonID, arg.SubgroupID)
-	return err
-}
-
-const createTeacherLocationAssignment = `-- name: CreateTeacherLocationAssignment :exec
-INSERT INTO teacher_location_assignments (lesson_id, teacher_id, location_id)
-VALUES ($1, $2, $3)
-`
-
-type CreateTeacherLocationAssignmentParams struct {
+type CreateTeacherLocationAssignmentsParams struct {
 	LessonID   uuid.UUID
 	TeacherID  int32
 	LocationID int32
 }
 
-func (q *Queries) CreateTeacherLocationAssignment(ctx context.Context, arg CreateTeacherLocationAssignmentParams) error {
-	_, err := q.db.Exec(ctx, createTeacherLocationAssignment, arg.LessonID, arg.TeacherID, arg.LocationID)
+const deleteLesson = `-- name: DeleteLesson :exec
+DELETE FROM lessons WHERE id = $1
+`
+
+func (q *Queries) DeleteLesson(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteLesson, id)
+	return err
+}
+
+const deleteLessonAssignments = `-- name: DeleteLessonAssignments :exec
+SELECT delete_lesson_assignments($1)
+`
+
+func (q *Queries) DeleteLessonAssignments(ctx context.Context, lessonID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteLessonAssignments, lessonID)
 	return err
 }
 
@@ -91,6 +97,656 @@ SELECT flush_staging_to_main()
 func (q *Queries) FlushStagingToMain(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, flushStagingToMain)
 	return err
+}
+
+const getLesson = `-- name: GetLesson :one
+SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+FROM lessons l
+         JOIN subjects s ON s.id = subject_id
+         JOIN timetables tt ON tt.id = timetable_id
+         WHERE l.id = $1
+ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
+`
+
+type GetLessonRow struct {
+	ID            uuid.UUID
+	SubjectID     int32
+	Category      string
+	Day           int32
+	TimeStart     int32
+	TimeEnd       int32
+	RepeatRule    int32
+	TimetableID   int32
+	SubjectName   string
+	TimetableName string
+	DateStart     time.Time
+	DateEnd       time.Time
+}
+
+func (q *Queries) GetLesson(ctx context.Context, id uuid.UUID) (GetLessonRow, error) {
+	row := q.db.QueryRow(ctx, getLesson, id)
+	var i GetLessonRow
+	err := row.Scan(
+		&i.ID,
+		&i.SubjectID,
+		&i.Category,
+		&i.Day,
+		&i.TimeStart,
+		&i.TimeEnd,
+		&i.RepeatRule,
+		&i.TimetableID,
+		&i.SubjectName,
+		&i.TimetableName,
+		&i.DateStart,
+		&i.DateEnd,
+	)
+	return i, err
+}
+
+const getLessonAssignments = `-- name: GetLessonAssignments :many
+SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+       (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
+FROM teacher_location_assignments WHERE lesson_id = $1
+ORDER BY teacher_name, location_name
+`
+
+type GetLessonAssignmentsRow struct {
+	LessonID     uuid.UUID
+	TeacherID    int32
+	LocationID   int32
+	TeacherName  string
+	LocationName string
+}
+
+func (q *Queries) GetLessonAssignments(ctx context.Context, lessonID uuid.UUID) ([]GetLessonAssignmentsRow, error) {
+	rows, err := q.db.Query(ctx, getLessonAssignments, lessonID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonAssignmentsRow
+	for rows.Next() {
+		var i GetLessonAssignmentsRow
+		if err := rows.Scan(
+			&i.LessonID,
+			&i.TeacherID,
+			&i.LocationID,
+			&i.TeacherName,
+			&i.LocationName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonAssignmentsByLocationId = `-- name: GetLessonAssignmentsByLocationId :many
+SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+       (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
+FROM teacher_location_assignments
+WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
+ORDER BY teacher_name, location_name
+`
+
+type GetLessonAssignmentsByLocationIdRow struct {
+	LessonID     uuid.UUID
+	TeacherID    int32
+	LocationID   int32
+	TeacherName  string
+	LocationName string
+}
+
+func (q *Queries) GetLessonAssignmentsByLocationId(ctx context.Context, locationID int32) ([]GetLessonAssignmentsByLocationIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonAssignmentsByLocationId, locationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonAssignmentsByLocationIdRow
+	for rows.Next() {
+		var i GetLessonAssignmentsByLocationIdRow
+		if err := rows.Scan(
+			&i.LessonID,
+			&i.TeacherID,
+			&i.LocationID,
+			&i.TeacherName,
+			&i.LocationName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonAssignmentsBySubgroupId = `-- name: GetLessonAssignmentsBySubgroupId :many
+SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+       (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
+FROM teacher_location_assignments
+WHERE lesson_id IN (SELECT lesson_id FROM subgroups_assignments WHERE subgroups_assignments.subgroup_id = $1)
+ORDER BY teacher_name, location_name
+`
+
+type GetLessonAssignmentsBySubgroupIdRow struct {
+	LessonID     uuid.UUID
+	TeacherID    int32
+	LocationID   int32
+	TeacherName  string
+	LocationName string
+}
+
+func (q *Queries) GetLessonAssignmentsBySubgroupId(ctx context.Context, subgroupID int32) ([]GetLessonAssignmentsBySubgroupIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonAssignmentsBySubgroupId, subgroupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonAssignmentsBySubgroupIdRow
+	for rows.Next() {
+		var i GetLessonAssignmentsBySubgroupIdRow
+		if err := rows.Scan(
+			&i.LessonID,
+			&i.TeacherID,
+			&i.LocationID,
+			&i.TeacherName,
+			&i.LocationName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonAssignmentsBySubjectId = `-- name: GetLessonAssignmentsBySubjectId :many
+SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+       (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
+FROM teacher_location_assignments
+WHERE lesson_id IN (SELECT lessons.id FROM lessons WHERE subject_id = $1)
+ORDER BY teacher_name, location_name
+`
+
+type GetLessonAssignmentsBySubjectIdRow struct {
+	LessonID     uuid.UUID
+	TeacherID    int32
+	LocationID   int32
+	TeacherName  string
+	LocationName string
+}
+
+func (q *Queries) GetLessonAssignmentsBySubjectId(ctx context.Context, subjectID int32) ([]GetLessonAssignmentsBySubjectIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonAssignmentsBySubjectId, subjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonAssignmentsBySubjectIdRow
+	for rows.Next() {
+		var i GetLessonAssignmentsBySubjectIdRow
+		if err := rows.Scan(
+			&i.LessonID,
+			&i.TeacherID,
+			&i.LocationID,
+			&i.TeacherName,
+			&i.LocationName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonAssignmentsByTeacherId = `-- name: GetLessonAssignmentsByTeacherId :many
+SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+       (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
+FROM teacher_location_assignments
+WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
+ORDER BY teacher_name, location_name
+`
+
+type GetLessonAssignmentsByTeacherIdRow struct {
+	LessonID     uuid.UUID
+	TeacherID    int32
+	LocationID   int32
+	TeacherName  string
+	LocationName string
+}
+
+func (q *Queries) GetLessonAssignmentsByTeacherId(ctx context.Context, teacherID int32) ([]GetLessonAssignmentsByTeacherIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonAssignmentsByTeacherId, teacherID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonAssignmentsByTeacherIdRow
+	for rows.Next() {
+		var i GetLessonAssignmentsByTeacherIdRow
+		if err := rows.Scan(
+			&i.LessonID,
+			&i.TeacherID,
+			&i.LocationID,
+			&i.TeacherName,
+			&i.LocationName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonSubgroups = `-- name: GetLessonSubgroups :many
+SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
+FROM subgroups_assignments WHERE lesson_id = $1
+ORDER BY subgroup_name
+`
+
+type GetLessonSubgroupsRow struct {
+	LessonID     uuid.UUID
+	SubgroupID   int32
+	SubgroupName string
+}
+
+func (q *Queries) GetLessonSubgroups(ctx context.Context, lessonID uuid.UUID) ([]GetLessonSubgroupsRow, error) {
+	rows, err := q.db.Query(ctx, getLessonSubgroups, lessonID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonSubgroupsRow
+	for rows.Next() {
+		var i GetLessonSubgroupsRow
+		if err := rows.Scan(&i.LessonID, &i.SubgroupID, &i.SubgroupName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsByLocationsId = `-- name: GetLessonsByLocationsId :many
+SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+FROM lessons l
+         JOIN subjects s ON s.id = subject_id
+         JOIN timetables tt ON tt.id = timetable_id
+WHERE l.id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
+ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
+`
+
+type GetLessonsByLocationsIdRow struct {
+	ID            uuid.UUID
+	SubjectID     int32
+	Category      string
+	Day           int32
+	TimeStart     int32
+	TimeEnd       int32
+	RepeatRule    int32
+	TimetableID   int32
+	SubjectName   string
+	TimetableName string
+	DateStart     time.Time
+	DateEnd       time.Time
+}
+
+func (q *Queries) GetLessonsByLocationsId(ctx context.Context, locationID int32) ([]GetLessonsByLocationsIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsByLocationsId, locationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsByLocationsIdRow
+	for rows.Next() {
+		var i GetLessonsByLocationsIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SubjectID,
+			&i.Category,
+			&i.Day,
+			&i.TimeStart,
+			&i.TimeEnd,
+			&i.RepeatRule,
+			&i.TimetableID,
+			&i.SubjectName,
+			&i.TimetableName,
+			&i.DateStart,
+			&i.DateEnd,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsBySubgroupId = `-- name: GetLessonsBySubgroupId :many
+SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+FROM lessons l
+         JOIN subjects s ON s.id = subject_id
+         JOIN timetables tt ON tt.id = timetable_id
+WHERE l.id IN (SELECT lesson_id FROM subgroups_assignments WHERE subgroups_assignments.subgroup_id = $1)
+ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
+`
+
+type GetLessonsBySubgroupIdRow struct {
+	ID            uuid.UUID
+	SubjectID     int32
+	Category      string
+	Day           int32
+	TimeStart     int32
+	TimeEnd       int32
+	RepeatRule    int32
+	TimetableID   int32
+	SubjectName   string
+	TimetableName string
+	DateStart     time.Time
+	DateEnd       time.Time
+}
+
+func (q *Queries) GetLessonsBySubgroupId(ctx context.Context, subgroupID int32) ([]GetLessonsBySubgroupIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsBySubgroupId, subgroupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsBySubgroupIdRow
+	for rows.Next() {
+		var i GetLessonsBySubgroupIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SubjectID,
+			&i.Category,
+			&i.Day,
+			&i.TimeStart,
+			&i.TimeEnd,
+			&i.RepeatRule,
+			&i.TimetableID,
+			&i.SubjectName,
+			&i.TimetableName,
+			&i.DateStart,
+			&i.DateEnd,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsBySubjectId = `-- name: GetLessonsBySubjectId :many
+SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+FROM lessons l
+         JOIN subjects s ON s.id = subject_id
+         JOIN timetables tt ON tt.id = timetable_id
+WHERE subject_id = $1
+ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
+`
+
+type GetLessonsBySubjectIdRow struct {
+	ID            uuid.UUID
+	SubjectID     int32
+	Category      string
+	Day           int32
+	TimeStart     int32
+	TimeEnd       int32
+	RepeatRule    int32
+	TimetableID   int32
+	SubjectName   string
+	TimetableName string
+	DateStart     time.Time
+	DateEnd       time.Time
+}
+
+func (q *Queries) GetLessonsBySubjectId(ctx context.Context, subjectID int32) ([]GetLessonsBySubjectIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsBySubjectId, subjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsBySubjectIdRow
+	for rows.Next() {
+		var i GetLessonsBySubjectIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SubjectID,
+			&i.Category,
+			&i.Day,
+			&i.TimeStart,
+			&i.TimeEnd,
+			&i.RepeatRule,
+			&i.TimetableID,
+			&i.SubjectName,
+			&i.TimetableName,
+			&i.DateStart,
+			&i.DateEnd,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsByTeacherId = `-- name: GetLessonsByTeacherId :many
+SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+FROM lessons l
+         JOIN subjects s ON s.id = subject_id
+         JOIN timetables tt ON tt.id = timetable_id
+WHERE l.id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
+ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
+`
+
+type GetLessonsByTeacherIdRow struct {
+	ID            uuid.UUID
+	SubjectID     int32
+	Category      string
+	Day           int32
+	TimeStart     int32
+	TimeEnd       int32
+	RepeatRule    int32
+	TimetableID   int32
+	SubjectName   string
+	TimetableName string
+	DateStart     time.Time
+	DateEnd       time.Time
+}
+
+func (q *Queries) GetLessonsByTeacherId(ctx context.Context, teacherID int32) ([]GetLessonsByTeacherIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsByTeacherId, teacherID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsByTeacherIdRow
+	for rows.Next() {
+		var i GetLessonsByTeacherIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SubjectID,
+			&i.Category,
+			&i.Day,
+			&i.TimeStart,
+			&i.TimeEnd,
+			&i.RepeatRule,
+			&i.TimetableID,
+			&i.SubjectName,
+			&i.TimetableName,
+			&i.DateStart,
+			&i.DateEnd,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsSubgroupsByLocationId = `-- name: GetLessonsSubgroupsByLocationId :many
+SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
+FROM subgroups_assignments
+WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
+ORDER BY subgroup_name
+`
+
+type GetLessonsSubgroupsByLocationIdRow struct {
+	LessonID     uuid.UUID
+	SubgroupID   int32
+	SubgroupName string
+}
+
+func (q *Queries) GetLessonsSubgroupsByLocationId(ctx context.Context, locationID int32) ([]GetLessonsSubgroupsByLocationIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsSubgroupsByLocationId, locationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsSubgroupsByLocationIdRow
+	for rows.Next() {
+		var i GetLessonsSubgroupsByLocationIdRow
+		if err := rows.Scan(&i.LessonID, &i.SubgroupID, &i.SubgroupName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsSubgroupsBySubgroupId = `-- name: GetLessonsSubgroupsBySubgroupId :many
+SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
+FROM subgroups_assignments
+WHERE lesson_id IN (SELECT lesson_id FROM subgroups_assignments WHERE subgroups_assignments.subgroup_id = $1)
+ORDER BY subgroup_name
+`
+
+type GetLessonsSubgroupsBySubgroupIdRow struct {
+	LessonID     uuid.UUID
+	SubgroupID   int32
+	SubgroupName string
+}
+
+func (q *Queries) GetLessonsSubgroupsBySubgroupId(ctx context.Context, subgroupID int32) ([]GetLessonsSubgroupsBySubgroupIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsSubgroupsBySubgroupId, subgroupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsSubgroupsBySubgroupIdRow
+	for rows.Next() {
+		var i GetLessonsSubgroupsBySubgroupIdRow
+		if err := rows.Scan(&i.LessonID, &i.SubgroupID, &i.SubgroupName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsSubgroupsBySubjectId = `-- name: GetLessonsSubgroupsBySubjectId :many
+SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
+FROM subgroups_assignments
+WHERE lesson_id IN (SELECT lessons.id FROM lessons WHERE subject_id = $1)
+ORDER BY subgroup_name
+`
+
+type GetLessonsSubgroupsBySubjectIdRow struct {
+	LessonID     uuid.UUID
+	SubgroupID   int32
+	SubgroupName string
+}
+
+func (q *Queries) GetLessonsSubgroupsBySubjectId(ctx context.Context, subjectID int32) ([]GetLessonsSubgroupsBySubjectIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsSubgroupsBySubjectId, subjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsSubgroupsBySubjectIdRow
+	for rows.Next() {
+		var i GetLessonsSubgroupsBySubjectIdRow
+		if err := rows.Scan(&i.LessonID, &i.SubgroupID, &i.SubgroupName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLessonsSubgroupsByTeacherId = `-- name: GetLessonsSubgroupsByTeacherId :many
+SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
+FROM subgroups_assignments
+WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
+ORDER BY subgroup_name
+`
+
+type GetLessonsSubgroupsByTeacherIdRow struct {
+	LessonID     uuid.UUID
+	SubgroupID   int32
+	SubgroupName string
+}
+
+func (q *Queries) GetLessonsSubgroupsByTeacherId(ctx context.Context, teacherID int32) ([]GetLessonsSubgroupsByTeacherIdRow, error) {
+	rows, err := q.db.Query(ctx, getLessonsSubgroupsByTeacherId, teacherID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLessonsSubgroupsByTeacherIdRow
+	for rows.Next() {
+		var i GetLessonsSubgroupsByTeacherIdRow
+		if err := rows.Scan(&i.LessonID, &i.SubgroupID, &i.SubgroupName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 type InsertStagingLessonsParams struct {
@@ -113,6 +769,43 @@ type InsertStagingTeacherLocationAssignmentsParams struct {
 	StagingID uuid.UUID
 	Teacher   string
 	Location  string
+}
+
+const patchLesson = `-- name: PatchLesson :exec
+UPDATE lessons SET subject_id = $1,
+                    category = $2,
+                    day = $3,
+                    time_start = $4,
+                    time_end = $5,
+                    repeat_rule = $6,
+                    timetable_id = $7,
+                    hash = calculate_lesson_hash($8)
+WHERE id = $8
+`
+
+type PatchLessonParams struct {
+	SubjectID   int32
+	Category    string
+	Day         int32
+	TimeStart   int32
+	TimeEnd     int32
+	RepeatRule  int32
+	TimetableID int32
+	ID          uuid.UUID
+}
+
+func (q *Queries) PatchLesson(ctx context.Context, arg PatchLessonParams) error {
+	_, err := q.db.Exec(ctx, patchLesson,
+		arg.SubjectID,
+		arg.Category,
+		arg.Day,
+		arg.TimeStart,
+		arg.TimeEnd,
+		arg.RepeatRule,
+		arg.TimetableID,
+		arg.ID,
+	)
+	return err
 }
 
 const updateStagingHash = `-- name: UpdateStagingHash :exec

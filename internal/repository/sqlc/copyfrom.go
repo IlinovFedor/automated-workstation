@@ -9,6 +9,73 @@ import (
 	"context"
 )
 
+// iteratorForCreateSubgroupAssignments implements pgx.CopyFromSource.
+type iteratorForCreateSubgroupAssignments struct {
+	rows                 []CreateSubgroupAssignmentsParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateSubgroupAssignments) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateSubgroupAssignments) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].LessonID,
+		r.rows[0].SubgroupID,
+	}, nil
+}
+
+func (r iteratorForCreateSubgroupAssignments) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateSubgroupAssignments(ctx context.Context, arg []CreateSubgroupAssignmentsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"subgroups_assignments"}, []string{"lesson_id", "subgroup_id"}, &iteratorForCreateSubgroupAssignments{rows: arg})
+}
+
+// iteratorForCreateTeacherLocationAssignments implements pgx.CopyFromSource.
+type iteratorForCreateTeacherLocationAssignments struct {
+	rows                 []CreateTeacherLocationAssignmentsParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateTeacherLocationAssignments) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateTeacherLocationAssignments) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].LessonID,
+		r.rows[0].TeacherID,
+		r.rows[0].LocationID,
+	}, nil
+}
+
+func (r iteratorForCreateTeacherLocationAssignments) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateTeacherLocationAssignments(ctx context.Context, arg []CreateTeacherLocationAssignmentsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"teacher_location_assignments"}, []string{"lesson_id", "teacher_id", "location_id"}, &iteratorForCreateTeacherLocationAssignments{rows: arg})
+}
+
 // iteratorForInsertStagingLessons implements pgx.CopyFromSource.
 type iteratorForInsertStagingLessons struct {
 	rows                 []InsertStagingLessonsParams

@@ -243,6 +243,19 @@ CREATE TRIGGER trigger_tla_hash
     AFTER INSERT OR UPDATE OR DELETE ON teacher_location_assignments
     FOR EACH ROW
     EXECUTE FUNCTION trg_tla_hash();
+
+CREATE OR REPLACE FUNCTION delete_lesson_assignments(p_lesson_id UUID) RETURNS void AS $$
+    BEGIN
+        ALTER TABLE teacher_location_assignments DISABLE TRIGGER trigger_tla_hash;
+        ALTER TABLE lessons DISABLE TRIGGER trigger_lesson_hash;
+
+        DELETE FROM subgroups_assignments WHERE lesson_id = p_lesson_id;
+        DELETE FROM teacher_location_assignments WHERE lesson_id = p_lesson_id;
+
+        ALTER TABLE teacher_location_assignments ENABLE TRIGGER trigger_tla_hash;
+        ALTER TABLE lessons ENABLE TRIGGER trigger_lesson_hash;
+    END;
+    $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose Down
@@ -255,6 +268,7 @@ DROP FUNCTION IF EXISTS calculate_lesson_hash(UUID);
 DROP FUNCTION IF EXISTS flush_staging_to_main();
 DROP FUNCTION IF EXISTS update_staging_hash();
 DROP FUNCTION IF EXISTS create_staging_tables();
+DROP FUNCTION IF EXISTS delete_lesson_assignments(UUID);
 DROP TABLE teacher_location_assignments;
 DROP TABLE subgroups_assignments;
 DROP TABLE lessons;

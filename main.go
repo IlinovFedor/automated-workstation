@@ -57,16 +57,14 @@ func main() {
 	slog.Info("connected to db")
 
 	app := application.NewApplication(repo, cfg)
-	serveMux := http.NewServeMux()
 	middlewares := []api.StrictMiddlewareFunc{
 		application.AuthMiddleware(cfg),
 		application.LoggerMiddleware(),
 	}
-	strictHandler := api.NewStrictHandler(app, middlewares)
-	api.HandlerFromMux(strictHandler, serveMux)
 
+	strictHandler := api.NewStrictHandler(app, middlewares)
 	server := &http.Server{
-		Handler: serveMux,
+		Handler: api.Handler(strictHandler),
 		Addr:    cfg.Addr(),
 	}
 	defer server.Shutdown(ctx)
@@ -79,7 +77,7 @@ func main() {
 		}
 
 		slog.Error("http server is closed abnormally", "error", err.Error())
-		os.Exit(0)
+		os.Exit(1)
 	}()
 	slog.Info("start http server")
 

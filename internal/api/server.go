@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/google/uuid"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -28,6 +29,17 @@ import (
 
 const (
 	CookieAuthScopes = "cookieAuth.Scopes"
+)
+
+// Defines values for ErrorCode.
+const (
+	CODEBADREQUEST         ErrorCode = "CODE_BAD_REQUEST"
+	CODECANNOTSERIALIZEICS ErrorCode = "CODE_CANNOT_SERIALIZE_ICS"
+	CODEDBERROR            ErrorCode = "CODE_DB_ERROR"
+	CODEFORBIDDEN          ErrorCode = "CODE_FORBIDDEN"
+	CODEUNAUTHORIZED       ErrorCode = "CODE_UNAUTHORIZED"
+	CODEWRONGARCHIVE       ErrorCode = "CODE_WRONG_ARCHIVE"
+	CODEWRONGXLSX          ErrorCode = "CODE_WRONG_XLSX"
 )
 
 // Defines values for GetLessonsTableIdParamsFormat.
@@ -46,29 +58,29 @@ const (
 
 // Error defines model for error.
 type Error struct {
-	LessonId    *int    `json:"lesson_id,omitempty"`
-	LocationId  *int    `json:"location_id,omitempty"`
-	Message     *string `json:"message,omitempty"`
-	SubgroupId  *int    `json:"subgroup_id,omitempty"`
-	TeacherId   *int    `json:"teacher_id,omitempty"`
-	TimetableId *int    `json:"timetable_id,omitempty"`
+	Code    ErrorCode `json:"code"`
+	File    *string   `json:"file,omitempty"`
+	Message *string   `json:"message,omitempty"`
 }
+
+// ErrorCode defines model for Error.Code.
+type ErrorCode string
 
 // Lesson defines model for lesson.
 type Lesson struct {
 	Category                   string                      `json:"category"`
-	Day                        int                         `json:"day"`
-	Id                         *openapi_types.UUID         `json:"id,omitempty"`
-	RepeatRule                 int                         `json:"repeat_rule"`
+	Day                        int32                       `json:"day"`
+	Id                         uuid.UUID                   `json:"id"`
+	RepeatRule                 int32                       `json:"repeat_rule"`
 	Subgroups                  []Subgroup                  `json:"subgroups"`
 	Subject                    Subject                     `json:"subject"`
 	TeacherLocationAssignments []TeacherLocationAssignment `json:"teacher_location_assignments"`
 
 	// TimeEnd time of lesson end in minutes from the beginning of the day
-	TimeEnd int `json:"time_end"`
+	TimeEnd int32 `json:"time_end"`
 
 	// TimeStart time of lesson start in minutes from the beginning of the day
-	TimeStart int       `json:"time_start"`
+	TimeStart int32     `json:"time_start"`
 	Timetable Timetable `json:"timetable"`
 }
 
@@ -110,31 +122,31 @@ type ListTimetables struct {
 
 // Location defines model for location.
 type Location struct {
-	Id   *int   `json:"id,omitempty"`
+	Id   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
 // Pagination defines model for pagination.
 type Pagination struct {
-	Page       int `json:"page"`
-	TotalPages int `json:"total_pages"`
+	Page       int32 `json:"page"`
+	TotalPages int32 `json:"total_pages"`
 }
 
 // Subgroup defines model for subgroup.
 type Subgroup struct {
-	Id   *int   `json:"id,omitempty"`
+	Id   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
 // Subject defines model for subject.
 type Subject struct {
-	Id   *int   `json:"id,omitempty"`
+	Id   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
 // Teacher defines model for teacher.
 type Teacher struct {
-	Id   *int   `json:"id,omitempty"`
+	Id   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -147,15 +159,15 @@ type TeacherLocationAssignment struct {
 // Timetable defines model for timetable.
 type Timetable struct {
 	EndDate   time.Time `json:"end_date"`
-	Id        *int      `json:"id,omitempty"`
+	Id        int32     `json:"id"`
 	Name      string    `json:"name"`
 	StartDate time.Time `json:"start_date"`
 }
 
 // GetErrorsParams defines parameters for GetErrors.
 type GetErrorsParams struct {
-	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Page     *int `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int32 `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Page     *int32 `form:"page,omitempty" json:"page,omitempty"`
 }
 
 // PostImportMultipartBody defines parameters for PostImport.
@@ -177,36 +189,36 @@ type GetLessonsTableIdParamsTable string
 
 // GetLocationsParams defines parameters for GetLocations.
 type GetLocationsParams struct {
-	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int32  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Page     *int32  `form:"page,omitempty" json:"page,omitempty"`
 	Search   *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetSubgroupsParams defines parameters for GetSubgroups.
 type GetSubgroupsParams struct {
-	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int32  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Page     *int32  `form:"page,omitempty" json:"page,omitempty"`
 	Search   *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetSubjectsParams defines parameters for GetSubjects.
 type GetSubjectsParams struct {
-	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int32  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Page     *int32  `form:"page,omitempty" json:"page,omitempty"`
 	Search   *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetTeachersParams defines parameters for GetTeachers.
 type GetTeachersParams struct {
-	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int32  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Page     *int32  `form:"page,omitempty" json:"page,omitempty"`
 	Search   *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetTimetablesParams defines parameters for GetTimetables.
 type GetTimetablesParams struct {
-	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int32  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Page     *int32  `form:"page,omitempty" json:"page,omitempty"`
 	Search   *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
@@ -256,7 +268,7 @@ type ServerInterface interface {
 	GetErrors(w http.ResponseWriter, r *http.Request, params GetErrorsParams)
 	// get error in data assignments
 	// (GET /errors/{id})
-	GetErrorsId(w http.ResponseWriter, r *http.Request, id int)
+	GetErrorsId(w http.ResponseWriter, r *http.Request, id int32)
 	// import data from zip
 	// (POST /import)
 	PostImport(w http.ResponseWriter, r *http.Request)
@@ -265,16 +277,16 @@ type ServerInterface interface {
 	PostLessons(w http.ResponseWriter, r *http.Request)
 	// delete lesson
 	// (DELETE /lessons/{id})
-	DeleteLessonsId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteLessonsId(w http.ResponseWriter, r *http.Request, id uuid.UUID)
 
 	// (GET /lessons/{id})
-	GetLessonsId(w http.ResponseWriter, r *http.Request, id int)
+	GetLessonsId(w http.ResponseWriter, r *http.Request, id uuid.UUID)
 	// patch lesson information
 	// (PATCH /lessons/{id})
-	PatchLessonsId(w http.ResponseWriter, r *http.Request, id int)
+	PatchLessonsId(w http.ResponseWriter, r *http.Request, id uuid.UUID)
 	// get lessons by tables
 	// (GET /lessons/{table}/{id})
-	GetLessonsTableId(w http.ResponseWriter, r *http.Request, table GetLessonsTableIdParamsTable, id int, params GetLessonsTableIdParams)
+	GetLessonsTableId(w http.ResponseWriter, r *http.Request, table GetLessonsTableIdParamsTable, id int32, params GetLessonsTableIdParams)
 	// get paginated locations
 	// (GET /locations)
 	GetLocations(w http.ResponseWriter, r *http.Request, params GetLocationsParams)
@@ -283,13 +295,13 @@ type ServerInterface interface {
 	PostLocations(w http.ResponseWriter, r *http.Request)
 	// delete location
 	// (DELETE /locations/{id})
-	DeleteLocationsId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteLocationsId(w http.ResponseWriter, r *http.Request, id int32)
 
 	// (GET /locations/{id})
-	GetLocationsId(w http.ResponseWriter, r *http.Request, id int)
+	GetLocationsId(w http.ResponseWriter, r *http.Request, id int32)
 	// patch location information
 	// (PATCH /locations/{id})
-	PatchLocationsId(w http.ResponseWriter, r *http.Request, id int)
+	PatchLocationsId(w http.ResponseWriter, r *http.Request, id int32)
 	// get paginated subgroups
 	// (GET /subgroups)
 	GetSubgroups(w http.ResponseWriter, r *http.Request, params GetSubgroupsParams)
@@ -298,13 +310,13 @@ type ServerInterface interface {
 	PostSubgroups(w http.ResponseWriter, r *http.Request)
 	// delete subgroup
 	// (DELETE /subgroups/{id})
-	DeleteSubgroupsId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteSubgroupsId(w http.ResponseWriter, r *http.Request, id int32)
 
 	// (GET /subgroups/{id})
-	GetSubgroupsId(w http.ResponseWriter, r *http.Request, id int)
+	GetSubgroupsId(w http.ResponseWriter, r *http.Request, id int32)
 	// patch subgroup information
 	// (PATCH /subgroups/{id})
-	PatchSubgroupsId(w http.ResponseWriter, r *http.Request, id int)
+	PatchSubgroupsId(w http.ResponseWriter, r *http.Request, id int32)
 	// get paginated subjects
 	// (GET /subjects)
 	GetSubjects(w http.ResponseWriter, r *http.Request, params GetSubjectsParams)
@@ -313,13 +325,13 @@ type ServerInterface interface {
 	PostSubjects(w http.ResponseWriter, r *http.Request)
 	// delete subject
 	// (DELETE /subjects/{id})
-	DeleteSubjectsId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteSubjectsId(w http.ResponseWriter, r *http.Request, id int32)
 
 	// (GET /subjects/{id})
-	GetSubjectsId(w http.ResponseWriter, r *http.Request, id int)
+	GetSubjectsId(w http.ResponseWriter, r *http.Request, id int32)
 	// patch subject information
 	// (PATCH /subjects/{id})
-	PatchSubjectsId(w http.ResponseWriter, r *http.Request, id int)
+	PatchSubjectsId(w http.ResponseWriter, r *http.Request, id int32)
 	// get paginated teachers
 	// (GET /teachers)
 	GetTeachers(w http.ResponseWriter, r *http.Request, params GetTeachersParams)
@@ -328,13 +340,13 @@ type ServerInterface interface {
 	PostTeachers(w http.ResponseWriter, r *http.Request)
 	// delete teacher
 	// (DELETE /teachers/{id})
-	DeleteTeachersId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteTeachersId(w http.ResponseWriter, r *http.Request, id int32)
 
 	// (GET /teachers/{id})
-	GetTeachersId(w http.ResponseWriter, r *http.Request, id int)
+	GetTeachersId(w http.ResponseWriter, r *http.Request, id int32)
 	// patch teacher information
 	// (PATCH /teachers/{id})
-	PatchTeachersId(w http.ResponseWriter, r *http.Request, id int)
+	PatchTeachersId(w http.ResponseWriter, r *http.Request, id int32)
 	// get paginated timetables
 	// (GET /timetables)
 	GetTimetables(w http.ResponseWriter, r *http.Request, params GetTimetablesParams)
@@ -343,13 +355,13 @@ type ServerInterface interface {
 	PostTimetables(w http.ResponseWriter, r *http.Request)
 	// delete timetable
 	// (DELETE /timetables/{id})
-	DeleteTimetablesId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteTimetablesId(w http.ResponseWriter, r *http.Request, id int32)
 
 	// (GET /timetables/{id})
-	GetTimetablesId(w http.ResponseWriter, r *http.Request, id int)
+	GetTimetablesId(w http.ResponseWriter, r *http.Request, id int32)
 	// patch timetable information
 	// (PATCH /timetables/{id})
-	PatchTimetablesId(w http.ResponseWriter, r *http.Request, id int)
+	PatchTimetablesId(w http.ResponseWriter, r *http.Request, id int32)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -406,7 +418,7 @@ func (siw *ServerInterfaceWrapper) GetErrorsId(w http.ResponseWriter, r *http.Re
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -468,7 +480,7 @@ func (siw *ServerInterfaceWrapper) DeleteLessonsId(w http.ResponseWriter, r *htt
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id uuid.UUID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -496,7 +508,7 @@ func (siw *ServerInterfaceWrapper) GetLessonsId(w http.ResponseWriter, r *http.R
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id uuid.UUID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -524,7 +536,7 @@ func (siw *ServerInterfaceWrapper) PatchLessonsId(w http.ResponseWriter, r *http
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id uuid.UUID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -561,7 +573,7 @@ func (siw *ServerInterfaceWrapper) GetLessonsTableId(w http.ResponseWriter, r *h
 	}
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -663,7 +675,7 @@ func (siw *ServerInterfaceWrapper) DeleteLocationsId(w http.ResponseWriter, r *h
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -691,7 +703,7 @@ func (siw *ServerInterfaceWrapper) GetLocationsId(w http.ResponseWriter, r *http
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -719,7 +731,7 @@ func (siw *ServerInterfaceWrapper) PatchLocationsId(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -810,7 +822,7 @@ func (siw *ServerInterfaceWrapper) DeleteSubgroupsId(w http.ResponseWriter, r *h
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -838,7 +850,7 @@ func (siw *ServerInterfaceWrapper) GetSubgroupsId(w http.ResponseWriter, r *http
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -866,7 +878,7 @@ func (siw *ServerInterfaceWrapper) PatchSubgroupsId(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -957,7 +969,7 @@ func (siw *ServerInterfaceWrapper) DeleteSubjectsId(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -985,7 +997,7 @@ func (siw *ServerInterfaceWrapper) GetSubjectsId(w http.ResponseWriter, r *http.
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1013,7 +1025,7 @@ func (siw *ServerInterfaceWrapper) PatchSubjectsId(w http.ResponseWriter, r *htt
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1104,7 +1116,7 @@ func (siw *ServerInterfaceWrapper) DeleteTeachersId(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1132,7 +1144,7 @@ func (siw *ServerInterfaceWrapper) GetTeachersId(w http.ResponseWriter, r *http.
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1160,7 +1172,7 @@ func (siw *ServerInterfaceWrapper) PatchTeachersId(w http.ResponseWriter, r *htt
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1251,7 +1263,7 @@ func (siw *ServerInterfaceWrapper) DeleteTimetablesId(w http.ResponseWriter, r *
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1279,7 +1291,7 @@ func (siw *ServerInterfaceWrapper) GetTimetablesId(w http.ResponseWriter, r *htt
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1307,7 +1319,7 @@ func (siw *ServerInterfaceWrapper) PatchTimetablesId(w http.ResponseWriter, r *h
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int32
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1515,7 +1527,7 @@ func (response GetErrors500JSONResponse) VisitGetErrorsResponse(w http.ResponseW
 }
 
 type GetErrorsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type GetErrorsIdResponseObject interface {
@@ -1674,20 +1686,19 @@ func (response PostLessons500JSONResponse) VisitPostLessonsResponse(w http.Respo
 }
 
 type DeleteLessonsIdRequestObject struct {
-	Id int `json:"id"`
+	Id uuid.UUID `json:"id"`
 }
 
 type DeleteLessonsIdResponseObject interface {
 	VisitDeleteLessonsIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteLessonsId200JSONResponse Lesson
+type DeleteLessonsId200Response struct {
+}
 
-func (response DeleteLessonsId200JSONResponse) VisitDeleteLessonsIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response DeleteLessonsId200Response) VisitDeleteLessonsIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type DeleteLessonsId400JSONResponse Error
@@ -1736,7 +1747,7 @@ func (response DeleteLessonsId500JSONResponse) VisitDeleteLessonsIdResponse(w ht
 }
 
 type GetLessonsIdRequestObject struct {
-	Id int `json:"id"`
+	Id uuid.UUID `json:"id"`
 }
 
 type GetLessonsIdResponseObject interface {
@@ -1780,7 +1791,7 @@ func (response GetLessonsId500JSONResponse) VisitGetLessonsIdResponse(w http.Res
 }
 
 type PatchLessonsIdRequestObject struct {
-	Id   int `json:"id"`
+	Id   uuid.UUID `json:"id"`
 	Body *PatchLessonsIdJSONRequestBody
 }
 
@@ -1853,7 +1864,7 @@ func (response PatchLessonsId500JSONResponse) VisitPatchLessonsIdResponse(w http
 
 type GetLessonsTableIdRequestObject struct {
 	Table  GetLessonsTableIdParamsTable `json:"table"`
-	Id     int                          `json:"id"`
+	Id     int32                        `json:"id"`
 	Params GetLessonsTableIdParams
 }
 
@@ -2014,20 +2025,19 @@ func (response PostLocations500JSONResponse) VisitPostLocationsResponse(w http.R
 }
 
 type DeleteLocationsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type DeleteLocationsIdResponseObject interface {
 	VisitDeleteLocationsIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteLocationsId200JSONResponse Location
+type DeleteLocationsId200Response struct {
+}
 
-func (response DeleteLocationsId200JSONResponse) VisitDeleteLocationsIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response DeleteLocationsId200Response) VisitDeleteLocationsIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type DeleteLocationsId400JSONResponse Error
@@ -2076,7 +2086,7 @@ func (response DeleteLocationsId500JSONResponse) VisitDeleteLocationsIdResponse(
 }
 
 type GetLocationsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type GetLocationsIdResponseObject interface {
@@ -2120,7 +2130,7 @@ func (response GetLocationsId500JSONResponse) VisitGetLocationsIdResponse(w http
 }
 
 type PatchLocationsIdRequestObject struct {
-	Id   int `json:"id"`
+	Id   int32 `json:"id"`
 	Body *PatchLocationsIdJSONRequestBody
 }
 
@@ -2289,20 +2299,19 @@ func (response PostSubgroups500JSONResponse) VisitPostSubgroupsResponse(w http.R
 }
 
 type DeleteSubgroupsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type DeleteSubgroupsIdResponseObject interface {
 	VisitDeleteSubgroupsIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteSubgroupsId200JSONResponse Subgroup
+type DeleteSubgroupsId200Response struct {
+}
 
-func (response DeleteSubgroupsId200JSONResponse) VisitDeleteSubgroupsIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response DeleteSubgroupsId200Response) VisitDeleteSubgroupsIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type DeleteSubgroupsId400JSONResponse Error
@@ -2351,7 +2360,7 @@ func (response DeleteSubgroupsId500JSONResponse) VisitDeleteSubgroupsIdResponse(
 }
 
 type GetSubgroupsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type GetSubgroupsIdResponseObject interface {
@@ -2395,7 +2404,7 @@ func (response GetSubgroupsId500JSONResponse) VisitGetSubgroupsIdResponse(w http
 }
 
 type PatchSubgroupsIdRequestObject struct {
-	Id   int `json:"id"`
+	Id   int32 `json:"id"`
 	Body *PatchSubgroupsIdJSONRequestBody
 }
 
@@ -2564,20 +2573,19 @@ func (response PostSubjects500JSONResponse) VisitPostSubjectsResponse(w http.Res
 }
 
 type DeleteSubjectsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type DeleteSubjectsIdResponseObject interface {
 	VisitDeleteSubjectsIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteSubjectsId200JSONResponse Subject
+type DeleteSubjectsId200Response struct {
+}
 
-func (response DeleteSubjectsId200JSONResponse) VisitDeleteSubjectsIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response DeleteSubjectsId200Response) VisitDeleteSubjectsIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type DeleteSubjectsId400JSONResponse Error
@@ -2626,7 +2634,7 @@ func (response DeleteSubjectsId500JSONResponse) VisitDeleteSubjectsIdResponse(w 
 }
 
 type GetSubjectsIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type GetSubjectsIdResponseObject interface {
@@ -2670,7 +2678,7 @@ func (response GetSubjectsId500JSONResponse) VisitGetSubjectsIdResponse(w http.R
 }
 
 type PatchSubjectsIdRequestObject struct {
-	Id   int `json:"id"`
+	Id   int32 `json:"id"`
 	Body *PatchSubjectsIdJSONRequestBody
 }
 
@@ -2839,20 +2847,19 @@ func (response PostTeachers500JSONResponse) VisitPostTeachersResponse(w http.Res
 }
 
 type DeleteTeachersIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type DeleteTeachersIdResponseObject interface {
 	VisitDeleteTeachersIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteTeachersId200JSONResponse Teacher
+type DeleteTeachersId200Response struct {
+}
 
-func (response DeleteTeachersId200JSONResponse) VisitDeleteTeachersIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response DeleteTeachersId200Response) VisitDeleteTeachersIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type DeleteTeachersId400JSONResponse Error
@@ -2901,7 +2908,7 @@ func (response DeleteTeachersId500JSONResponse) VisitDeleteTeachersIdResponse(w 
 }
 
 type GetTeachersIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type GetTeachersIdResponseObject interface {
@@ -2945,7 +2952,7 @@ func (response GetTeachersId500JSONResponse) VisitGetTeachersIdResponse(w http.R
 }
 
 type PatchTeachersIdRequestObject struct {
-	Id   int `json:"id"`
+	Id   int32 `json:"id"`
 	Body *PatchTeachersIdJSONRequestBody
 }
 
@@ -3114,20 +3121,19 @@ func (response PostTimetables500JSONResponse) VisitPostTimetablesResponse(w http
 }
 
 type DeleteTimetablesIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type DeleteTimetablesIdResponseObject interface {
 	VisitDeleteTimetablesIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteTimetablesId200JSONResponse Timetable
+type DeleteTimetablesId200Response struct {
+}
 
-func (response DeleteTimetablesId200JSONResponse) VisitDeleteTimetablesIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response DeleteTimetablesId200Response) VisitDeleteTimetablesIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type DeleteTimetablesId400JSONResponse Error
@@ -3176,7 +3182,7 @@ func (response DeleteTimetablesId500JSONResponse) VisitDeleteTimetablesIdRespons
 }
 
 type GetTimetablesIdRequestObject struct {
-	Id int `json:"id"`
+	Id int32 `json:"id"`
 }
 
 type GetTimetablesIdResponseObject interface {
@@ -3220,7 +3226,7 @@ func (response GetTimetablesId500JSONResponse) VisitGetTimetablesIdResponse(w ht
 }
 
 type PatchTimetablesIdRequestObject struct {
-	Id   int `json:"id"`
+	Id   int32 `json:"id"`
 	Body *PatchTimetablesIdJSONRequestBody
 }
 
@@ -3450,7 +3456,7 @@ func (sh *strictHandler) GetErrors(w http.ResponseWriter, r *http.Request, param
 }
 
 // GetErrorsId operation middleware
-func (sh *strictHandler) GetErrorsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetErrorsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request GetErrorsIdRequestObject
 
 	request.Id = id
@@ -3538,7 +3544,7 @@ func (sh *strictHandler) PostLessons(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLessonsId operation middleware
-func (sh *strictHandler) DeleteLessonsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteLessonsId(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
 	var request DeleteLessonsIdRequestObject
 
 	request.Id = id
@@ -3564,7 +3570,7 @@ func (sh *strictHandler) DeleteLessonsId(w http.ResponseWriter, r *http.Request,
 }
 
 // GetLessonsId operation middleware
-func (sh *strictHandler) GetLessonsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetLessonsId(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
 	var request GetLessonsIdRequestObject
 
 	request.Id = id
@@ -3590,7 +3596,7 @@ func (sh *strictHandler) GetLessonsId(w http.ResponseWriter, r *http.Request, id
 }
 
 // PatchLessonsId operation middleware
-func (sh *strictHandler) PatchLessonsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) PatchLessonsId(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
 	var request PatchLessonsIdRequestObject
 
 	request.Id = id
@@ -3623,7 +3629,7 @@ func (sh *strictHandler) PatchLessonsId(w http.ResponseWriter, r *http.Request, 
 }
 
 // GetLessonsTableId operation middleware
-func (sh *strictHandler) GetLessonsTableId(w http.ResponseWriter, r *http.Request, table GetLessonsTableIdParamsTable, id int, params GetLessonsTableIdParams) {
+func (sh *strictHandler) GetLessonsTableId(w http.ResponseWriter, r *http.Request, table GetLessonsTableIdParamsTable, id int32, params GetLessonsTableIdParams) {
 	var request GetLessonsTableIdRequestObject
 
 	request.Table = table
@@ -3708,7 +3714,7 @@ func (sh *strictHandler) PostLocations(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLocationsId operation middleware
-func (sh *strictHandler) DeleteLocationsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteLocationsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request DeleteLocationsIdRequestObject
 
 	request.Id = id
@@ -3734,7 +3740,7 @@ func (sh *strictHandler) DeleteLocationsId(w http.ResponseWriter, r *http.Reques
 }
 
 // GetLocationsId operation middleware
-func (sh *strictHandler) GetLocationsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetLocationsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request GetLocationsIdRequestObject
 
 	request.Id = id
@@ -3760,7 +3766,7 @@ func (sh *strictHandler) GetLocationsId(w http.ResponseWriter, r *http.Request, 
 }
 
 // PatchLocationsId operation middleware
-func (sh *strictHandler) PatchLocationsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) PatchLocationsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request PatchLocationsIdRequestObject
 
 	request.Id = id
@@ -3850,7 +3856,7 @@ func (sh *strictHandler) PostSubgroups(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteSubgroupsId operation middleware
-func (sh *strictHandler) DeleteSubgroupsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteSubgroupsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request DeleteSubgroupsIdRequestObject
 
 	request.Id = id
@@ -3876,7 +3882,7 @@ func (sh *strictHandler) DeleteSubgroupsId(w http.ResponseWriter, r *http.Reques
 }
 
 // GetSubgroupsId operation middleware
-func (sh *strictHandler) GetSubgroupsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetSubgroupsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request GetSubgroupsIdRequestObject
 
 	request.Id = id
@@ -3902,7 +3908,7 @@ func (sh *strictHandler) GetSubgroupsId(w http.ResponseWriter, r *http.Request, 
 }
 
 // PatchSubgroupsId operation middleware
-func (sh *strictHandler) PatchSubgroupsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) PatchSubgroupsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request PatchSubgroupsIdRequestObject
 
 	request.Id = id
@@ -3992,7 +3998,7 @@ func (sh *strictHandler) PostSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteSubjectsId operation middleware
-func (sh *strictHandler) DeleteSubjectsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteSubjectsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request DeleteSubjectsIdRequestObject
 
 	request.Id = id
@@ -4018,7 +4024,7 @@ func (sh *strictHandler) DeleteSubjectsId(w http.ResponseWriter, r *http.Request
 }
 
 // GetSubjectsId operation middleware
-func (sh *strictHandler) GetSubjectsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetSubjectsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request GetSubjectsIdRequestObject
 
 	request.Id = id
@@ -4044,7 +4050,7 @@ func (sh *strictHandler) GetSubjectsId(w http.ResponseWriter, r *http.Request, i
 }
 
 // PatchSubjectsId operation middleware
-func (sh *strictHandler) PatchSubjectsId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) PatchSubjectsId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request PatchSubjectsIdRequestObject
 
 	request.Id = id
@@ -4134,7 +4140,7 @@ func (sh *strictHandler) PostTeachers(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteTeachersId operation middleware
-func (sh *strictHandler) DeleteTeachersId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteTeachersId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request DeleteTeachersIdRequestObject
 
 	request.Id = id
@@ -4160,7 +4166,7 @@ func (sh *strictHandler) DeleteTeachersId(w http.ResponseWriter, r *http.Request
 }
 
 // GetTeachersId operation middleware
-func (sh *strictHandler) GetTeachersId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetTeachersId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request GetTeachersIdRequestObject
 
 	request.Id = id
@@ -4186,7 +4192,7 @@ func (sh *strictHandler) GetTeachersId(w http.ResponseWriter, r *http.Request, i
 }
 
 // PatchTeachersId operation middleware
-func (sh *strictHandler) PatchTeachersId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) PatchTeachersId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request PatchTeachersIdRequestObject
 
 	request.Id = id
@@ -4276,7 +4282,7 @@ func (sh *strictHandler) PostTimetables(w http.ResponseWriter, r *http.Request) 
 }
 
 // DeleteTimetablesId operation middleware
-func (sh *strictHandler) DeleteTimetablesId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteTimetablesId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request DeleteTimetablesIdRequestObject
 
 	request.Id = id
@@ -4302,7 +4308,7 @@ func (sh *strictHandler) DeleteTimetablesId(w http.ResponseWriter, r *http.Reque
 }
 
 // GetTimetablesId operation middleware
-func (sh *strictHandler) GetTimetablesId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) GetTimetablesId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request GetTimetablesIdRequestObject
 
 	request.Id = id
@@ -4328,7 +4334,7 @@ func (sh *strictHandler) GetTimetablesId(w http.ResponseWriter, r *http.Request,
 }
 
 // PatchTimetablesId operation middleware
-func (sh *strictHandler) PatchTimetablesId(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) PatchTimetablesId(w http.ResponseWriter, r *http.Request, id int32) {
 	var request PatchTimetablesIdRequestObject
 
 	request.Id = id
@@ -4363,41 +4369,44 @@ func (sh *strictHandler) PatchTimetablesId(w http.ResponseWriter, r *http.Reques
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
