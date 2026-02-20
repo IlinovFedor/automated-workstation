@@ -1081,6 +1081,157 @@ func (a *Application) PatchSubgroupsId(ctx context.Context, request api.PatchSub
 
 }
 
+func (a *Application) GetTeachers(ctx context.Context, request api.GetTeachersRequestObject) (api.GetTeachersResponseObject, error) {
+	params := newSearchParams(request.Params.Page, request.Params.PageSize, request.Params.Search)
+	teachers, err := a.repo.GetTeachersOnPage(ctx, sqlc.GetTeachersOnPageParams{
+		Name:     params.search,
+		PageSize: params.pageSize,
+		Page:     params.page,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetTeachers500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+	amount, err := a.repo.GetTeachersPagesAmount(ctx, params.pageSize)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetTeachers500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	response := api.ListTeachers{
+		Teachers: make([]api.Teacher, len(teachers)),
+		Pagination: api.Pagination{
+			Page:       params.page,
+			TotalPages: amount,
+		},
+	}
+	for i, teacher := range teachers {
+		response.Teachers[i] = api.Teacher{
+			Id:   teacher.ID,
+			Name: teacher.Name,
+		}
+	}
+
+	return api.GetTeachers200JSONResponse(response), nil
+}
+
+func (a *Application) PostTeachers(ctx context.Context, request api.PostTeachersRequestObject) (api.PostTeachersResponseObject, error) {
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PostTeachers401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PostTeachers403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	teacher, err := a.repo.CreateTeacher(ctx, request.Body.Name)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PostTeachers500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.PostTeachers201JSONResponse{
+		Id:   teacher.ID,
+		Name: teacher.Name,
+	}, nil
+
+}
+
+func (a *Application) DeleteTeachersId(ctx context.Context, request api.DeleteTeachersIdRequestObject) (api.DeleteTeachersIdResponseObject, error) {
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.DeleteTeachersId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.DeleteTeachersId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	_, err := a.repo.DeleteTeacherById(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.DeleteTeachersId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.DeleteTeachersId200Response{}, nil
+
+}
+
+func (a *Application) GetTeachersId(ctx context.Context, request api.GetTeachersIdRequestObject) (api.GetTeachersIdResponseObject, error) {
+	teacher, err := a.repo.GetTeacherById(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetTeachersId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.GetTeachersId200JSONResponse{
+		Id:   teacher.ID,
+		Name: teacher.Name,
+	}, nil
+}
+
+func (a *Application) PatchTeachersId(ctx context.Context, request api.PatchTeachersIdRequestObject) (api.PatchTeachersIdResponseObject, error) {
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PatchTeachersId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PatchTeachersId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	teacher, err := a.repo.PatchTeacherById(ctx, sqlc.PatchTeacherByIdParams{
+		Name: request.Body.Name,
+		ID:   request.Id,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchTeachersId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.PatchTeachersId200JSONResponse{
+		Id:   teacher.ID,
+		Name: teacher.Name,
+	}, nil
+}
+
 func (a *Application) GetSubjects(ctx context.Context, request api.GetSubjectsRequestObject) (api.GetSubjectsResponseObject, error) {
 	params := newSearchParams(request.Params.Page, request.Params.PageSize, request.Params.Search)
 	subjects, err := a.repo.GetSubjectsOnPage(ctx, sqlc.GetSubjectsOnPageParams{
@@ -1231,31 +1382,6 @@ func (a *Application) PatchSubjectsId(ctx context.Context, request api.PatchSubj
 		Id:   subgroup.ID,
 		Name: subgroup.Name,
 	}, nil
-
-}
-func (a *Application) GetTeachers(ctx context.Context, request api.GetTeachersRequestObject) (api.GetTeachersResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a *Application) PostTeachers(ctx context.Context, request api.PostTeachersRequestObject) (api.PostTeachersResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a *Application) DeleteTeachersId(ctx context.Context, request api.DeleteTeachersIdRequestObject) (api.DeleteTeachersIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a *Application) GetTeachersId(ctx context.Context, request api.GetTeachersIdRequestObject) (api.GetTeachersIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a *Application) PatchTeachersId(ctx context.Context, request api.PatchTeachersIdRequestObject) (api.PatchTeachersIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (a *Application) GetTimetables(ctx context.Context, request api.GetTimetablesRequestObject) (api.GetTimetablesResponseObject, error) {

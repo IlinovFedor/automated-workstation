@@ -107,6 +107,18 @@ func (q *Queries) CreateSubject(ctx context.Context, name string) (Subject, erro
 	return i, err
 }
 
+const createTeacher = `-- name: CreateTeacher :one
+INSERT INTO teachers (name)
+VALUES ($1) RETURNING id, name
+`
+
+func (q *Queries) CreateTeacher(ctx context.Context, name string) (Teacher, error) {
+	row := q.db.QueryRow(ctx, createTeacher, name)
+	var i Teacher
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 type CreateTeacherLocationAssignmentsParams struct {
 	LessonID   uuid.UUID
 	TeacherID  int32
@@ -166,6 +178,19 @@ WHERE id = $1 RETURNING id, name
 func (q *Queries) DeleteSubjectById(ctx context.Context, id int32) (Subject, error) {
 	row := q.db.QueryRow(ctx, deleteSubjectById, id)
 	var i Subject
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const deleteTeacherById = `-- name: DeleteTeacherById :one
+DELETE
+FROM teachers
+WHERE id = $1 RETURNING id, name
+`
+
+func (q *Queries) DeleteTeacherById(ctx context.Context, id int32) (Teacher, error) {
+	row := q.db.QueryRow(ctx, deleteTeacherById, id)
+	var i Teacher
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
@@ -1009,6 +1034,66 @@ func (q *Queries) GetSubjectsPagesAmount(ctx context.Context, pageSize int32) (i
 	return column_1, err
 }
 
+const getTeacherById = `-- name: GetTeacherById :one
+SELECT id, name
+FROM teachers
+WHERE id = $1
+`
+
+func (q *Queries) GetTeacherById(ctx context.Context, id int32) (Teacher, error) {
+	row := q.db.QueryRow(ctx, getTeacherById, id)
+	var i Teacher
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const getTeachersOnPage = `-- name: GetTeachersOnPage :many
+
+SELECT id, name FROM teachers
+WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
+ORDER BY name
+LIMIT $2::INTEGER
+    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+`
+
+type GetTeachersOnPageParams struct {
+	Name     pgtype.Text
+	PageSize int32
+	Page     int32
+}
+
+// SUBJECTS
+func (q *Queries) GetTeachersOnPage(ctx context.Context, arg GetTeachersOnPageParams) ([]Teacher, error) {
+	rows, err := q.db.Query(ctx, getTeachersOnPage, arg.Name, arg.PageSize, arg.Page)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Teacher
+	for rows.Next() {
+		var i Teacher
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeachersPagesAmount = `-- name: GetTeachersPagesAmount :one
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM teachers
+`
+
+func (q *Queries) GetTeachersPagesAmount(ctx context.Context, pageSize int32) (int32, error) {
+	row := q.db.QueryRow(ctx, getTeachersPagesAmount, pageSize)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 type InsertStagingLessonsParams struct {
 	StagingID  uuid.UUID
 	Subject    string
@@ -1118,6 +1203,24 @@ type PatchSubjectByIdParams struct {
 func (q *Queries) PatchSubjectById(ctx context.Context, arg PatchSubjectByIdParams) (Subject, error) {
 	row := q.db.QueryRow(ctx, patchSubjectById, arg.Name, arg.ID)
 	var i Subject
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const patchTeacherById = `-- name: PatchTeacherById :one
+UPDATE teachers
+SET name = $1
+WHERE id = $2 RETURNING id, name
+`
+
+type PatchTeacherByIdParams struct {
+	Name string
+	ID   int32
+}
+
+func (q *Queries) PatchTeacherById(ctx context.Context, arg PatchTeacherByIdParams) (Teacher, error) {
+	row := q.db.QueryRow(ctx, patchTeacherById, arg.Name, arg.ID)
+	var i Teacher
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

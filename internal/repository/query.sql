@@ -278,3 +278,34 @@ WHERE id = @id RETURNING id, name;
 DELETE
 FROM subjects
 WHERE id = @id RETURNING id, name;
+
+-- SUBJECTS
+
+-- name: GetTeachersOnPage :many
+SELECT id, name FROM teachers
+WHERE (sqlc.narg(name)::TEXT IS NULL OR name ILIKE '%' || sqlc.narg(name)::TEXT || '%')
+ORDER BY name
+LIMIT sqlc.arg(page_size)::INTEGER
+    OFFSET sqlc.arg(page_size)::INTEGER * (sqlc.arg(page)::INTEGER - 1);
+
+-- name: GetTeachersPagesAmount :one
+SELECT CEILING(COUNT(*) / (@page_size::INT)::FLOAT)::INT FROM teachers;
+
+-- name: CreateTeacher :one
+INSERT INTO teachers (name)
+VALUES (@name) RETURNING id, name;
+
+-- name: GetTeacherById :one
+SELECT *
+FROM teachers
+WHERE id = @id;
+
+-- name: PatchTeacherById :one
+UPDATE teachers
+SET name = @name
+WHERE id = @id RETURNING id, name;
+
+-- name: DeleteTeacherById :one
+DELETE
+FROM teachers
+WHERE id = @id RETURNING id, name;
