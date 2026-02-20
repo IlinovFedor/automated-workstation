@@ -353,10 +353,10 @@ func getApiLesson(ctx context.Context, repo *repository.Repo, id uuid.UUID) (api
 		TimeEnd:                    repoLesson.TimeEnd,
 		TimeStart:                  repoLesson.TimeStart,
 		Timetable: api.Timetable{
-			EndDate:   repoLesson.DateEnd,
+			DateEnd:   repoLesson.DateEnd,
 			Id:        repoLesson.TimetableID,
 			Name:      repoLesson.TimetableName,
-			StartDate: repoLesson.DateStart,
+			DateStart: repoLesson.DateStart,
 		},
 	}, nil
 }
@@ -467,16 +467,17 @@ func (a *Application) PatchLessonsId(ctx context.Context, request api.PatchLesso
 
 func (a *Application) GetLessonsTableId(ctx context.Context, request api.GetLessonsTableIdRequestObject) (api.GetLessonsTableIdResponseObject, error) {
 	lessons := make([]api.Lesson, 0)
+	name := ""
 	var err error = nil
 	switch request.Table {
 	case api.Teachers:
-		lessons, err = getLessonByTeacherId(ctx, a.repo, request)
+		lessons, name, err = getLessonByTeacherId(ctx, a.repo, request)
 	case api.Subgroups:
-		lessons, err = getLessonBySubgroupId(ctx, a.repo, request)
+		lessons, name, err = getLessonBySubgroupId(ctx, a.repo, request)
 	case api.Locations:
-		lessons, err = getLessonByLocationId(ctx, a.repo, request)
+		lessons, name, err = getLessonByLocationId(ctx, a.repo, request)
 	case api.Subjects:
-		lessons, err = getLessonBySubjectId(ctx, a.repo, request)
+		lessons, name, err = getLessonBySubjectId(ctx, a.repo, request)
 	default:
 		return api.GetLessonsTableId400JSONResponse{
 			Code: api.CODEBADREQUEST,
@@ -495,7 +496,7 @@ func (a *Application) GetLessonsTableId(ctx context.Context, request api.GetLess
 	if request.Params.Format == nil || *request.Params.Format == api.Json {
 		return api.GetLessonsTableId200JSONResponse(lessons), nil
 	} else if *request.Params.Format == api.Ics {
-		ics, err := lib.SerializeICS(lessons, "KAL")
+		ics, err := lib.SerializeICS(lessons, name)
 		if err != nil {
 			message := err.Error()
 			return api.GetLessonsTableId500JSONResponse{
@@ -515,11 +516,16 @@ func (a *Application) GetLessonsTableId(ctx context.Context, request api.GetLess
 	}, nil
 }
 
-func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, string, error) {
+	teacher, err := repo.GetTeacherById(ctx, request.Id)
+	if err != nil {
+		return nil, "", err
+	}
+
 	lessons := make(map[uuid.UUID]*api.Lesson, 0)
 	rowsLessons, err := repo.GetLessonsByTeacherId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsLessons {
 		lesson := api.Lesson{
@@ -536,10 +542,11 @@ func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request ap
 			TimeEnd:                    row.TimeEnd,
 			TimeStart:                  row.TimeStart,
 			Timetable: api.Timetable{
-				EndDate:   row.DateEnd,
+				DateEnd:   row.DateEnd,
 				Id:        row.TimetableID,
 				Name:      row.TimetableName,
-				StartDate: row.DateStart,
+				DateStart: row.DateStart,
+				Week:      row.Week,
 			},
 		}
 		lessons[row.ID] = &lesson
@@ -547,7 +554,7 @@ func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request ap
 
 	rowsSubgroups, err := repo.GetLessonsSubgroupsByTeacherId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsSubgroups {
 		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
@@ -558,7 +565,7 @@ func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request ap
 
 	rowsAssignments, err := repo.GetLessonAssignmentsByTeacherId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsAssignments {
 		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
@@ -578,14 +585,19 @@ func getLessonByTeacherId(ctx context.Context, repo *repository.Repo, request ap
 		result[i] = *lesson
 		i++
 	}
-	return result, nil
+	return result, teacher.Name, nil
 }
 
-func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, string, error) {
+	subgroup, err := repo.GetSubgroupById(ctx, request.Id)
+	if err != nil {
+		return nil, "", err
+	}
+
 	lessons := make(map[uuid.UUID]*api.Lesson, 0)
 	rowsLessons, err := repo.GetLessonsBySubgroupId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsLessons {
 		lesson := api.Lesson{
@@ -602,10 +614,11 @@ func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request a
 			TimeEnd:                    row.TimeEnd,
 			TimeStart:                  row.TimeStart,
 			Timetable: api.Timetable{
-				EndDate:   row.DateEnd,
+				DateEnd:   row.DateEnd,
 				Id:        row.TimetableID,
 				Name:      row.TimetableName,
-				StartDate: row.DateStart,
+				DateStart: row.DateStart,
+				Week:      row.Week,
 			},
 		}
 		lessons[row.ID] = &lesson
@@ -613,7 +626,7 @@ func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request a
 
 	rowsSubgroups, err := repo.GetLessonsSubgroupsBySubgroupId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsSubgroups {
 		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
@@ -624,7 +637,7 @@ func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request a
 
 	rowsAssignments, err := repo.GetLessonAssignmentsBySubgroupId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsAssignments {
 		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
@@ -644,14 +657,19 @@ func getLessonBySubgroupId(ctx context.Context, repo *repository.Repo, request a
 		result[i] = *lesson
 		i++
 	}
-	return result, nil
+	return result, subgroup.Name, nil
 }
 
-func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, string, error) {
+	location, err := repo.GetLocationById(ctx, request.Id)
+	if err != nil {
+		return nil, "", err
+	}
+
 	lessons := make(map[uuid.UUID]*api.Lesson, 0)
 	rowsLessons, err := repo.GetLessonsByLocationsId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsLessons {
 		lesson := api.Lesson{
@@ -668,10 +686,11 @@ func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request a
 			TimeEnd:                    row.TimeEnd,
 			TimeStart:                  row.TimeStart,
 			Timetable: api.Timetable{
-				EndDate:   row.DateEnd,
+				DateEnd:   row.DateEnd,
 				Id:        row.TimetableID,
 				Name:      row.TimetableName,
-				StartDate: row.DateStart,
+				DateStart: row.DateStart,
+				Week:      row.Week,
 			},
 		}
 		lessons[row.ID] = &lesson
@@ -679,7 +698,7 @@ func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request a
 
 	rowsSubgroups, err := repo.GetLessonsSubgroupsByLocationId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsSubgroups {
 		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
@@ -690,7 +709,7 @@ func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request a
 
 	rowsAssignments, err := repo.GetLessonAssignmentsByLocationId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsAssignments {
 		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
@@ -710,14 +729,19 @@ func getLessonByLocationId(ctx context.Context, repo *repository.Repo, request a
 		result[i] = *lesson
 		i++
 	}
-	return result, nil
+	return result, location.Name, nil
 }
 
-func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, error) {
+func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request api.GetLessonsTableIdRequestObject) ([]api.Lesson, string, error) {
+	subject, err := repo.GetSubjectById(ctx, request.Id)
+	if err != nil {
+		return nil, "", err
+	}
+
 	lessons := make(map[uuid.UUID]*api.Lesson, 0)
 	rowsLessons, err := repo.GetLessonsBySubjectId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsLessons {
 		lesson := api.Lesson{
@@ -734,10 +758,11 @@ func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request ap
 			TimeEnd:                    row.TimeEnd,
 			TimeStart:                  row.TimeStart,
 			Timetable: api.Timetable{
-				EndDate:   row.DateEnd,
+				DateEnd:   row.DateEnd,
 				Id:        row.TimetableID,
 				Name:      row.TimetableName,
-				StartDate: row.DateStart,
+				DateStart: row.DateStart,
+				Week:      row.Week,
 			},
 		}
 		lessons[row.ID] = &lesson
@@ -745,7 +770,7 @@ func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request ap
 
 	rowsSubgroups, err := repo.GetLessonsSubgroupsBySubjectId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsSubgroups {
 		lessons[row.LessonID].Subgroups = append(lessons[row.LessonID].Subgroups, api.Subgroup{
@@ -756,7 +781,7 @@ func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request ap
 
 	rowsAssignments, err := repo.GetLessonAssignmentsBySubjectId(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, row := range rowsAssignments {
 		lessons[row.LessonID].TeacherLocationAssignments = append(lessons[row.LessonID].TeacherLocationAssignments, api.TeacherLocationAssignment{
@@ -776,7 +801,7 @@ func getLessonBySubjectId(ctx context.Context, repo *repository.Repo, request ap
 		result[i] = *lesson
 		i++
 	}
-	return result, nil
+	return result, subject.Name, nil
 }
 
 func (a *Application) GetLocations(ctx context.Context, request api.GetLocationsRequestObject) (api.GetLocationsResponseObject, error) {
@@ -1385,26 +1410,173 @@ func (a *Application) PatchSubjectsId(ctx context.Context, request api.PatchSubj
 }
 
 func (a *Application) GetTimetables(ctx context.Context, request api.GetTimetablesRequestObject) (api.GetTimetablesResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	params := newSearchParams(request.Params.Page, request.Params.PageSize, request.Params.Search)
+	timetables, err := a.repo.GetTimetablesOnPage(ctx, sqlc.GetTimetablesOnPageParams{
+		Name:     params.search,
+		PageSize: params.pageSize,
+		Page:     params.page,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetTimetables500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+	amount, err := a.repo.GetTimetablesPagesAmount(ctx, params.pageSize)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetTimetables500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	response := api.ListTimetables{
+		Timetables: make([]api.Timetable, len(timetables)),
+		Pagination: api.Pagination{
+			Page:       params.page,
+			TotalPages: amount,
+		},
+	}
+	for i, timetable := range timetables {
+		response.Timetables[i] = api.Timetable{
+			DateEnd:   timetable.DateEnd,
+			Id:        timetable.ID,
+			Name:      timetable.Name,
+			DateStart: timetable.DateStart,
+			Week:      timetable.Week,
+		}
+	}
+
+	return api.GetTimetables200JSONResponse(response), nil
+
 }
 
 func (a *Application) PostTimetables(ctx context.Context, request api.PostTimetablesRequestObject) (api.PostTimetablesResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PostTimetables401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PostTimetables403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	timetable, err := a.repo.CreateTimetable(ctx, sqlc.CreateTimetableParams{
+		Name:      request.Body.Name,
+		DateStart: request.Body.DateStart,
+		DateEnd:   request.Body.DateEnd,
+		Week:      request.Body.Week,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PostTimetables500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.PostTimetables201JSONResponse{
+		Id:        timetable.ID,
+		Name:      timetable.Name,
+		DateStart: timetable.DateStart,
+		DateEnd:   timetable.DateEnd,
+		Week:      timetable.Week,
+	}, nil
+
 }
 
 func (a *Application) DeleteTimetablesId(ctx context.Context, request api.DeleteTimetablesIdRequestObject) (api.DeleteTimetablesIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.DeleteTimetablesId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.DeleteTimetablesId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	_, err := a.repo.DeleteTimetableById(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.DeleteTimetablesId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.DeleteTimetablesId200Response{}, nil
+
 }
 
 func (a *Application) GetTimetablesId(ctx context.Context, request api.GetTimetablesIdRequestObject) (api.GetTimetablesIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	timetable, err := a.repo.GetTimetableById(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetTimetablesId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.GetTimetablesId200JSONResponse{
+		Id:        timetable.ID,
+		Name:      timetable.Name,
+		DateStart: timetable.DateStart,
+		DateEnd:   timetable.DateEnd,
+		Week:      timetable.Week,
+	}, nil
 }
 
 func (a *Application) PatchTimetablesId(ctx context.Context, request api.PatchTimetablesIdRequestObject) (api.PatchTimetablesIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PatchTimetablesId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PatchTimetablesId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	timetable, err := a.repo.PatchTimetableById(ctx, sqlc.PatchTimetableByIdParams{
+		Name:      request.Body.Name,
+		DateStart: request.Body.DateStart,
+		DateEnd:   request.Body.DateEnd,
+		ID:        request.Id,
+		Week:      request.Body.Week,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchTimetablesId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.PatchTimetablesId200JSONResponse{
+		DateEnd:   timetable.DateEnd,
+		Id:        timetable.ID,
+		Name:      timetable.Name,
+		DateStart: timetable.DateStart,
+		Week:      timetable.Week,
+	}, nil
 }

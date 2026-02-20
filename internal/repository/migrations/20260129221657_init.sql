@@ -24,7 +24,8 @@ CREATE TABLE timetables (
                             id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                             name       TEXT        NOT NULL UNIQUE,
                             date_start TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0),
-                            date_end   TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0)
+                            date_end   TIMESTAMPTZ NOT NULL DEFAULT to_timestamp(0),
+                            week       INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE lessons (
@@ -37,7 +38,7 @@ CREATE TABLE lessons (
                          repeat_rule  INTEGER NOT NULL,
                          timetable_id INTEGER NOT NULL,
                          hash         TEXT    NOT NULL UNIQUE,
-                         FOREIGN KEY (subject_id) REFERENCES subjects (id) ON DELETE RESTRICT,
+                         FOREIGN KEY (subject_id) REFERENCES subjects (id) ON DELETE CASCADE,
                          FOREIGN KEY (timetable_id) REFERENCES timetables (id) ON DELETE CASCADE
 );
 
@@ -45,7 +46,7 @@ CREATE TABLE subgroups_assignments (
                                        lesson_id   UUID    NOT NULL,
                                        subgroup_id INTEGER NOT NULL,
                                        FOREIGN KEY (lesson_id) REFERENCES lessons (id) ON DELETE CASCADE,
-                                       FOREIGN KEY (subgroup_id) REFERENCES subgroups (id) ON DELETE RESTRICT,
+                                       FOREIGN KEY (subgroup_id) REFERENCES subgroups (id) ON DELETE CASCADE,
                                        UNIQUE (lesson_id, subgroup_id)
 );
 
@@ -54,8 +55,8 @@ CREATE TABLE teacher_location_assignments (
                                               teacher_id  INTEGER NOT NULL,
                                               location_id INTEGER NOT NULL,
                                               FOREIGN KEY (lesson_id) REFERENCES lessons (id) ON DELETE CASCADE,
-                                              FOREIGN KEY (teacher_id) REFERENCES teachers (id) ON DELETE RESTRICT,
-                                              FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE RESTRICT,
+                                              FOREIGN KEY (teacher_id) REFERENCES teachers (id) ON DELETE CASCADE,
+                                              FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE CASCADE,
                                               UNIQUE (lesson_id, teacher_id, location_id)
 );
 

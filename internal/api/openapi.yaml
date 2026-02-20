@@ -1618,8 +1618,9 @@ components:
       required:
         - id
         - name
-        - start_date
-        - end_date
+        - date_start
+        - date_end
+        - week
       properties:
         id:
           type: integer
@@ -1627,12 +1628,17 @@ components:
           x-go-type: int32
         name:
           type: string
-        start_date:
+        date_start:
           type: string
           format: date-time
-        end_date:
+        date_end:
           type: string
           format: date-time
+        week:
+          type: integer
+          minimum: 1
+          maximum: 2
+          x-go-type: int32
     listTimetables:
       type: object
       required:

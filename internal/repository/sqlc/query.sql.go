@@ -125,6 +125,36 @@ type CreateTeacherLocationAssignmentsParams struct {
 	LocationID int32
 }
 
+const createTimetable = `-- name: CreateTimetable :one
+INSERT INTO timetables (name, date_start, date_end, week)
+VALUES ($1, $2, $3, $4) RETURNING id, name, date_start, date_end, week
+`
+
+type CreateTimetableParams struct {
+	Name      string
+	DateStart time.Time
+	DateEnd   time.Time
+	Week      int32
+}
+
+func (q *Queries) CreateTimetable(ctx context.Context, arg CreateTimetableParams) (Timetable, error) {
+	row := q.db.QueryRow(ctx, createTimetable,
+		arg.Name,
+		arg.DateStart,
+		arg.DateEnd,
+		arg.Week,
+	)
+	var i Timetable
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DateStart,
+		&i.DateEnd,
+		&i.Week,
+	)
+	return i, err
+}
+
 const deleteLesson = `-- name: DeleteLesson :exec
 DELETE FROM lessons WHERE id = $1
 `
@@ -192,6 +222,25 @@ func (q *Queries) DeleteTeacherById(ctx context.Context, id int32) (Teacher, err
 	row := q.db.QueryRow(ctx, deleteTeacherById, id)
 	var i Teacher
 	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const deleteTimetableById = `-- name: DeleteTimetableById :one
+DELETE
+FROM timetables
+WHERE id = $1 RETURNING id, name, date_start, date_end, week
+`
+
+func (q *Queries) DeleteTimetableById(ctx context.Context, id int32) (Timetable, error) {
+	row := q.db.QueryRow(ctx, deleteTimetableById, id)
+	var i Timetable
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DateStart,
+		&i.DateEnd,
+		&i.Week,
+	)
 	return i, err
 }
 
@@ -492,7 +541,7 @@ func (q *Queries) GetLessonSubgroups(ctx context.Context, lessonID uuid.UUID) ([
 
 const getLessonsByLocationsId = `-- name: GetLessonsByLocationsId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -513,6 +562,7 @@ type GetLessonsByLocationsIdRow struct {
 	TimetableName string
 	DateStart     time.Time
 	DateEnd       time.Time
+	Week          int32
 }
 
 func (q *Queries) GetLessonsByLocationsId(ctx context.Context, locationID int32) ([]GetLessonsByLocationsIdRow, error) {
@@ -537,6 +587,7 @@ func (q *Queries) GetLessonsByLocationsId(ctx context.Context, locationID int32)
 			&i.TimetableName,
 			&i.DateStart,
 			&i.DateEnd,
+			&i.Week,
 		); err != nil {
 			return nil, err
 		}
@@ -550,7 +601,7 @@ func (q *Queries) GetLessonsByLocationsId(ctx context.Context, locationID int32)
 
 const getLessonsBySubgroupId = `-- name: GetLessonsBySubgroupId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -571,6 +622,7 @@ type GetLessonsBySubgroupIdRow struct {
 	TimetableName string
 	DateStart     time.Time
 	DateEnd       time.Time
+	Week          int32
 }
 
 func (q *Queries) GetLessonsBySubgroupId(ctx context.Context, subgroupID int32) ([]GetLessonsBySubgroupIdRow, error) {
@@ -595,6 +647,7 @@ func (q *Queries) GetLessonsBySubgroupId(ctx context.Context, subgroupID int32) 
 			&i.TimetableName,
 			&i.DateStart,
 			&i.DateEnd,
+			&i.Week,
 		); err != nil {
 			return nil, err
 		}
@@ -608,7 +661,7 @@ func (q *Queries) GetLessonsBySubgroupId(ctx context.Context, subgroupID int32) 
 
 const getLessonsBySubjectId = `-- name: GetLessonsBySubjectId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -629,6 +682,7 @@ type GetLessonsBySubjectIdRow struct {
 	TimetableName string
 	DateStart     time.Time
 	DateEnd       time.Time
+	Week          int32
 }
 
 func (q *Queries) GetLessonsBySubjectId(ctx context.Context, subjectID int32) ([]GetLessonsBySubjectIdRow, error) {
@@ -653,6 +707,7 @@ func (q *Queries) GetLessonsBySubjectId(ctx context.Context, subjectID int32) ([
 			&i.TimetableName,
 			&i.DateStart,
 			&i.DateEnd,
+			&i.Week,
 		); err != nil {
 			return nil, err
 		}
@@ -666,7 +721,7 @@ func (q *Queries) GetLessonsBySubjectId(ctx context.Context, subjectID int32) ([
 
 const getLessonsByTeacherId = `-- name: GetLessonsByTeacherId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -687,6 +742,7 @@ type GetLessonsByTeacherIdRow struct {
 	TimetableName string
 	DateStart     time.Time
 	DateEnd       time.Time
+	Week          int32
 }
 
 func (q *Queries) GetLessonsByTeacherId(ctx context.Context, teacherID int32) ([]GetLessonsByTeacherIdRow, error) {
@@ -711,6 +767,7 @@ func (q *Queries) GetLessonsByTeacherId(ctx context.Context, teacherID int32) ([
 			&i.TimetableName,
 			&i.DateStart,
 			&i.DateEnd,
+			&i.Week,
 		); err != nil {
 			return nil, err
 		}
@@ -1094,6 +1151,78 @@ func (q *Queries) GetTeachersPagesAmount(ctx context.Context, pageSize int32) (i
 	return column_1, err
 }
 
+const getTimetableById = `-- name: GetTimetableById :one
+SELECT id, name, date_start, date_end, week
+FROM timetables
+WHERE id = $1
+`
+
+func (q *Queries) GetTimetableById(ctx context.Context, id int32) (Timetable, error) {
+	row := q.db.QueryRow(ctx, getTimetableById, id)
+	var i Timetable
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DateStart,
+		&i.DateEnd,
+		&i.Week,
+	)
+	return i, err
+}
+
+const getTimetablesOnPage = `-- name: GetTimetablesOnPage :many
+
+SELECT id, name, date_start, date_end, week FROM timetables
+WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
+ORDER BY name
+LIMIT $2::INTEGER
+    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+`
+
+type GetTimetablesOnPageParams struct {
+	Name     pgtype.Text
+	PageSize int32
+	Page     int32
+}
+
+// TIMETABLES
+func (q *Queries) GetTimetablesOnPage(ctx context.Context, arg GetTimetablesOnPageParams) ([]Timetable, error) {
+	rows, err := q.db.Query(ctx, getTimetablesOnPage, arg.Name, arg.PageSize, arg.Page)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Timetable
+	for rows.Next() {
+		var i Timetable
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DateStart,
+			&i.DateEnd,
+			&i.Week,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTimetablesPagesAmount = `-- name: GetTimetablesPagesAmount :one
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM timetables
+`
+
+func (q *Queries) GetTimetablesPagesAmount(ctx context.Context, pageSize int32) (int32, error) {
+	row := q.db.QueryRow(ctx, getTimetablesPagesAmount, pageSize)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 type InsertStagingLessonsParams struct {
 	StagingID  uuid.UUID
 	Subject    string
@@ -1222,6 +1351,42 @@ func (q *Queries) PatchTeacherById(ctx context.Context, arg PatchTeacherByIdPara
 	row := q.db.QueryRow(ctx, patchTeacherById, arg.Name, arg.ID)
 	var i Teacher
 	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const patchTimetableById = `-- name: PatchTimetableById :one
+UPDATE timetables
+SET name = $1,
+    date_start = $2,
+    date_end = $3,
+    week = $4
+WHERE id = $5 RETURNING id, name, date_start, date_end, week
+`
+
+type PatchTimetableByIdParams struct {
+	Name      string
+	DateStart time.Time
+	DateEnd   time.Time
+	Week      int32
+	ID        int32
+}
+
+func (q *Queries) PatchTimetableById(ctx context.Context, arg PatchTimetableByIdParams) (Timetable, error) {
+	row := q.db.QueryRow(ctx, patchTimetableById,
+		arg.Name,
+		arg.DateStart,
+		arg.DateEnd,
+		arg.Week,
+		arg.ID,
+	)
+	var i Timetable
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DateStart,
+		&i.DateEnd,
+		&i.Week,
+	)
 	return i, err
 }
 

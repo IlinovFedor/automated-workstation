@@ -98,6 +98,7 @@ type Timetable struct {
 	Name      string
 	DateStart time.Time
 	DateEnd   time.Time
+	Week      int32
 }
 
 type TimetablesStaging struct {

@@ -99,7 +99,7 @@ WHERE id = @id;
 
 -- name: GetLessonsByTeacherId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -122,7 +122,7 @@ ORDER BY teacher_name, location_name;
 
 -- name: GetLessonsBySubgroupId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -144,7 +144,7 @@ ORDER BY teacher_name, location_name;
 
 -- name: GetLessonsByLocationsId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -166,7 +166,7 @@ ORDER BY teacher_name, location_name;
 
 -- name: GetLessonsBySubjectId :many
 SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -309,3 +309,37 @@ WHERE id = @id RETURNING id, name;
 DELETE
 FROM teachers
 WHERE id = @id RETURNING id, name;
+
+-- TIMETABLES
+
+-- name: GetTimetablesOnPage :many
+SELECT * FROM timetables
+WHERE (sqlc.narg(name)::TEXT IS NULL OR name ILIKE '%' || sqlc.narg(name)::TEXT || '%')
+ORDER BY name
+LIMIT sqlc.arg(page_size)::INTEGER
+    OFFSET sqlc.arg(page_size)::INTEGER * (sqlc.arg(page)::INTEGER - 1);
+
+-- name: GetTimetablesPagesAmount :one
+SELECT CEILING(COUNT(*) / (@page_size::INT)::FLOAT)::INT FROM timetables;
+
+-- name: CreateTimetable :one
+INSERT INTO timetables (name, date_start, date_end, week)
+VALUES (@name, @date_start, @date_end, @week) RETURNING id, name, date_start, date_end, week;
+
+-- name: GetTimetableById :one
+SELECT *
+FROM timetables
+WHERE id = @id;
+
+-- name: PatchTimetableById :one
+UPDATE timetables
+SET name = @name,
+    date_start = @date_start,
+    date_end = @date_end,
+    week = @week
+WHERE id = @id RETURNING id, name, date_start, date_end, week;
+
+-- name: DeleteTimetableById :one
+DELETE
+FROM timetables
+WHERE id = @id RETURNING id, name, date_start, date_end, week;

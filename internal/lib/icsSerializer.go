@@ -17,7 +17,7 @@ func SerializeICS(lessons []api.Lesson, name string) ([]byte, error) {
 	cal.SetProductId(productId)
 
 	for _, lesson := range lessons {
-		timetableDateStart := lesson.Timetable.StartDate
+		timetableDateStart := lesson.Timetable.DateStart
 		event := cal.AddEvent(lesson.Id.String())
 		event.SetDtStampTime(time.Now())
 
@@ -29,18 +29,17 @@ func SerializeICS(lessons []api.Lesson, name string) ([]byte, error) {
 
 		freqInterval := 1
 
-		switch lesson.RepeatRule {
-		case 2:
-			startTime = startTime.AddDate(0, 0, 7)
-			endTime = endTime.AddDate(0, 0, 7)
-			freqInterval = 2
-		case 1:
+		if lesson.RepeatRule != 0 {
+			if (lesson.Timetable.Week == 1) == (lesson.RepeatRule == 2) {
+				startTime = startTime.AddDate(0, 0, 7)
+				endTime = endTime.AddDate(0, 0, 7)
+			}
 			freqInterval = 2
 		}
 
 		event.SetStartAt(startTime)
 		event.SetEndAt(endTime)
-		event.AddRrule(fmt.Sprintf("FREQ=WEEKLY;INTERVAL=%d;UNTIL=%s", freqInterval, lesson.Timetable.EndDate.Format("20060102T150405Z")))
+		event.AddRrule(fmt.Sprintf("FREQ=WEEKLY;INTERVAL=%d;UNTIL=%s", freqInterval, lesson.Timetable.DateEnd.Format("20060102T150405Z")))
 
 		event.SetSummary(lesson.Category + " " + lesson.Subject.Name)
 
