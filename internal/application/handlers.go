@@ -1082,30 +1082,157 @@ func (a *Application) PatchSubgroupsId(ctx context.Context, request api.PatchSub
 }
 
 func (a *Application) GetSubjects(ctx context.Context, request api.GetSubjectsRequestObject) (api.GetSubjectsResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	params := newSearchParams(request.Params.Page, request.Params.PageSize, request.Params.Search)
+	subjects, err := a.repo.GetSubjectsOnPage(ctx, sqlc.GetSubjectsOnPageParams{
+		Name:     params.search,
+		PageSize: params.pageSize,
+		Page:     params.page,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetSubjects500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+	amount, err := a.repo.GetSubjectsPagesAmount(ctx, params.pageSize)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetSubjects500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	response := api.ListSubjects{
+		Subjects: make([]api.Subject, len(subjects)),
+		Pagination: api.Pagination{
+			Page:       params.page,
+			TotalPages: amount,
+		},
+	}
+	for i, subject := range subjects {
+		response.Subjects[i] = api.Subject{
+			Id:   subject.ID,
+			Name: subject.Name,
+		}
+	}
+
+	return api.GetSubjects200JSONResponse(response), nil
+
 }
 
 func (a *Application) PostSubjects(ctx context.Context, request api.PostSubjectsRequestObject) (api.PostSubjectsResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PostSubjects401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PostSubjects403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	subject, err := a.repo.CreateSubject(ctx, request.Body.Name)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PostSubjects500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.PostSubjects201JSONResponse{
+		Id:   subject.ID,
+		Name: subject.Name,
+	}, nil
+
 }
 
 func (a *Application) DeleteSubjectsId(ctx context.Context, request api.DeleteSubjectsIdRequestObject) (api.DeleteSubjectsIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.DeleteSubjectsId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.DeleteSubjectsId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
+
+	_, err := a.repo.DeleteSubjectById(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.DeleteSubjectsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.DeleteSubjectsId200Response{}, nil
+
 }
 
 func (a *Application) GetSubjectsId(ctx context.Context, request api.GetSubjectsIdRequestObject) (api.GetSubjectsIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
+	subgroup, err := a.repo.GetSubjectById(ctx, request.Id)
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.GetSubjectsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.GetSubjectsId200JSONResponse{
+		Id:   subgroup.ID,
+		Name: subgroup.Name,
+	}, nil
 }
 
 func (a *Application) PatchSubjectsId(ctx context.Context, request api.PatchSubjectsIdRequestObject) (api.PatchSubjectsIdResponseObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
+	switch ctx.Value(apiRole) {
+	case roleUnauthorized:
+		return api.PatchSubjectsId401JSONResponse{
+			Code: api.CODEUNAUTHORIZED,
+		}, nil
+	case roleUser:
+		return api.PatchSubjectsId403JSONResponse{
+			Code: api.CODEFORBIDDEN,
+		}, nil
+	case roleAdmin:
+		break
+	}
 
+	subgroup, err := a.repo.PatchSubjectById(ctx, sqlc.PatchSubjectByIdParams{
+		Name: request.Body.Name,
+		ID:   request.Id,
+	})
+	if err != nil {
+		message := err.Error()
+		slog.ErrorContext(ctx, message)
+		return api.PatchSubjectsId500JSONResponse{
+			Code:    api.CODEDBERROR,
+			Message: &message,
+		}, nil
+	}
+
+	return api.PatchSubjectsId200JSONResponse{
+		Id:   subgroup.ID,
+		Name: subgroup.Name,
+	}, nil
+
+}
 func (a *Application) GetTeachers(ctx context.Context, request api.GetTeachersRequestObject) (api.GetTeachersResponseObject, error) {
 	//TODO implement me
 	panic("implement me")

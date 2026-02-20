@@ -247,3 +247,34 @@ WHERE id = @id RETURNING id, name;
 DELETE
 FROM subgroups
 WHERE id = @id RETURNING id, name;
+
+-- SUBJECTS
+
+-- name: GetSubjectsOnPage :many
+SELECT id, name FROM subjects
+WHERE (sqlc.narg(name)::TEXT IS NULL OR name ILIKE '%' || sqlc.narg(name)::TEXT || '%')
+ORDER BY name
+LIMIT sqlc.arg(page_size)::INTEGER
+    OFFSET sqlc.arg(page_size)::INTEGER * (sqlc.arg(page)::INTEGER - 1);
+
+-- name: GetSubjectsPagesAmount :one
+SELECT CEILING(COUNT(*) / (@page_size::INT)::FLOAT)::INT FROM subjects;
+
+-- name: CreateSubject :one
+INSERT INTO subjects (name)
+VALUES (@name) RETURNING id, name;
+
+-- name: GetSubjectById :one
+SELECT *
+FROM subjects
+WHERE id = @id;
+
+-- name: PatchSubjectById :one
+UPDATE subjects
+SET name = @name
+WHERE id = @id RETURNING id, name;
+
+-- name: DeleteSubjectById :one
+DELETE
+FROM subjects
+WHERE id = @id RETURNING id, name;

@@ -95,6 +95,18 @@ type CreateSubgroupAssignmentsParams struct {
 	SubgroupID int32
 }
 
+const createSubject = `-- name: CreateSubject :one
+INSERT INTO subjects (name)
+VALUES ($1) RETURNING id, name
+`
+
+func (q *Queries) CreateSubject(ctx context.Context, name string) (Subject, error) {
+	row := q.db.QueryRow(ctx, createSubject, name)
+	var i Subject
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 type CreateTeacherLocationAssignmentsParams struct {
 	LessonID   uuid.UUID
 	TeacherID  int32
@@ -141,6 +153,19 @@ WHERE id = $1 RETURNING id, name
 func (q *Queries) DeleteSubgroupById(ctx context.Context, id int32) (Subgroup, error) {
 	row := q.db.QueryRow(ctx, deleteSubgroupById, id)
 	var i Subgroup
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const deleteSubjectById = `-- name: DeleteSubjectById :one
+DELETE
+FROM subjects
+WHERE id = $1 RETURNING id, name
+`
+
+func (q *Queries) DeleteSubjectById(ctx context.Context, id int32) (Subject, error) {
+	row := q.db.QueryRow(ctx, deleteSubjectById, id)
+	var i Subject
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
@@ -924,6 +949,66 @@ func (q *Queries) GetSubgroupsPagesAmount(ctx context.Context, pageSize int32) (
 	return column_1, err
 }
 
+const getSubjectById = `-- name: GetSubjectById :one
+SELECT id, name
+FROM subjects
+WHERE id = $1
+`
+
+func (q *Queries) GetSubjectById(ctx context.Context, id int32) (Subject, error) {
+	row := q.db.QueryRow(ctx, getSubjectById, id)
+	var i Subject
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const getSubjectsOnPage = `-- name: GetSubjectsOnPage :many
+
+SELECT id, name FROM subjects
+WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
+ORDER BY name
+LIMIT $2::INTEGER
+    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+`
+
+type GetSubjectsOnPageParams struct {
+	Name     pgtype.Text
+	PageSize int32
+	Page     int32
+}
+
+// SUBJECTS
+func (q *Queries) GetSubjectsOnPage(ctx context.Context, arg GetSubjectsOnPageParams) ([]Subject, error) {
+	rows, err := q.db.Query(ctx, getSubjectsOnPage, arg.Name, arg.PageSize, arg.Page)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Subject
+	for rows.Next() {
+		var i Subject
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSubjectsPagesAmount = `-- name: GetSubjectsPagesAmount :one
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM subjects
+`
+
+func (q *Queries) GetSubjectsPagesAmount(ctx context.Context, pageSize int32) (int32, error) {
+	row := q.db.QueryRow(ctx, getSubjectsPagesAmount, pageSize)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 type InsertStagingLessonsParams struct {
 	StagingID  uuid.UUID
 	Subject    string
@@ -1015,6 +1100,24 @@ type PatchSubgroupByIdParams struct {
 func (q *Queries) PatchSubgroupById(ctx context.Context, arg PatchSubgroupByIdParams) (Subgroup, error) {
 	row := q.db.QueryRow(ctx, patchSubgroupById, arg.Name, arg.ID)
 	var i Subgroup
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const patchSubjectById = `-- name: PatchSubjectById :one
+UPDATE subjects
+SET name = $1
+WHERE id = $2 RETURNING id, name
+`
+
+type PatchSubjectByIdParams struct {
+	Name string
+	ID   int32
+}
+
+func (q *Queries) PatchSubjectById(ctx context.Context, arg PatchSubjectByIdParams) (Subject, error) {
+	row := q.db.QueryRow(ctx, patchSubjectById, arg.Name, arg.ID)
+	var i Subject
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
