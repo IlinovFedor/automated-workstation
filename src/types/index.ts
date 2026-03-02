@@ -76,10 +76,13 @@ export interface Lesson {
 
 export type TableType = 'subgroups' | 'teachers' | 'locations' | 'subjects';
 
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 export interface AppSettings {
   mode: TableType;
   entityId: number | null;
   entityName: string;
+  theme: ThemeMode;
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {

@@ -30,7 +30,7 @@ export function LessonCard({ lesson, date }: LessonCardProps) {
     <Link
       to={`/lesson/${lesson.id}`}
       state={{ date }}
-      className="block bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden active:bg-gray-50 transition-colors"
+      className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
     >
       <div className="flex">
         <div className={`${categoryColor} w-1.5 shrink-0`} />
@@ -40,17 +40,17 @@ export function LessonCard({ lesson, date }: LessonCardProps) {
               <span className={`text-xs font-medium px-2 py-0.5 rounded ${categoryColor} text-white`}>
                 {categoryLabel}
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {formatTimeRange(lesson.time_start, lesson.time_end)}
               </span>
             </div>
           </div>
-          <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-2 line-clamp-2">
             {lesson.subject.name}
           </h3>
           <div className="space-y-1">
             {lesson.teacher_location_assignments.map((assignment, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
+              <div key={idx} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                 <span className="truncate flex-1">{assignment.teacher.name}</span>
                 <span className="text-gray-400">—</span>
                 <Link
@@ -70,7 +70,7 @@ export function LessonCard({ lesson, date }: LessonCardProps) {
                   key={subgroup.id}
                   to={`/timetable/subgroups/${subgroup.id}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded hover:bg-gray-200 transition-colors"
+                  className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   {subgroup.name}
                 </Link>

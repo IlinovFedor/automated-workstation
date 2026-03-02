@@ -11,7 +11,7 @@ export function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="flex items-center justify-between px-4 py-3">
         <Link to="/" className="text-lg font-semibold text-blue-600">
           Расписание
@@ -20,14 +20,14 @@ export function Header() {
           {settings?.entityId && (
             <Link
               to={`/timetable/${settings.mode}/${settings.entityId}`}
-              className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+              className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors"
             >
               {settings.entityName || 'Моё расписание'}
             </Link>
           )}
           <Link
             to="/"
-            className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
+            className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors"
             aria-label="Настройки"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

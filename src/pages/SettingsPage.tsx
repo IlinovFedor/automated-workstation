@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchSelect } from '@/components';
-import { getSettings, saveSettings } from '@/store';
-import type { TableType, AppSettings } from '@/types';
+import { getSettings, saveSettings, saveTheme, applyTheme } from '@/store';
+import type { TableType, AppSettings, ThemeMode } from '@/types';
 
 const MODE_LABELS: Record<TableType, string> = {
   subgroups: 'Группа',
@@ -13,12 +13,19 @@ const MODE_LABELS: Record<TableType, string> = {
 
 const MODES: TableType[] = ['subgroups', 'teachers', 'locations', 'subjects'];
 
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: 'system', label: 'Системная' },
+  { value: 'light', label: 'Светлая' },
+  { value: 'dark', label: 'Тёмная' },
+];
+
 export function SettingsPage() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>({
     mode: 'subgroups',
     entityId: null,
     entityName: '',
+    theme: 'system',
   });
 
   useEffect(() => {
@@ -46,13 +53,38 @@ export function SettingsPage() {
     navigate(`/timetable/${newSettings.mode}/${id}`);
   };
 
+  const handleThemeChange = (theme: ThemeMode) => {
+    saveTheme(theme);
+    applyTheme(theme);
+    setSettings((prev) => ({ ...prev, theme }));
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-lg mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Настройки</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Настройки</h1>
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-3">Режим просмотра</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Оформление</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleThemeChange(option.value)}
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  settings.theme === option.value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Режим просмотра</h2>
           <div className="grid grid-cols-2 gap-2">
             {MODES.map((mode) => (
               <button
@@ -61,7 +93,7 @@ export function SettingsPage() {
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   settings.mode === mode
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
                 {MODE_LABELS[mode]}
@@ -70,8 +102,8 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-          <h2 className="text-sm font-medium text-gray-500 mb-3">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
             Выберите {MODE_LABELS[settings.mode].toLowerCase()}
           </h2>
           <SearchSelect

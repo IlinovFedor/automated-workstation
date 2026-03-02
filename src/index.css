@@ -10,6 +10,12 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: rgb(249 250 251);
+}
+
+.dark body,
+body.dark {
+  background-color: rgb(17 24 39);
 }
 
 .line-clamp-2 {

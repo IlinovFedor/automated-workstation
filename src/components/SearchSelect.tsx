@@ -106,28 +106,28 @@ export function SearchSelect({ mode, value, onChange }: SearchSelectProps) {
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="Поиск..."
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       {isOpen && (
         <div
           ref={listRef}
           onScroll={handleScroll}
-          className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
+          className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-auto"
         >
           {items.length === 0 && !loading && (
-            <div className="px-3 py-2 text-gray-500 text-center">Ничего не найдено</div>
+            <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-center">Ничего не найдено</div>
           )}
           {items.map((item) => (
             <button
               key={item.id}
               onClick={() => handleSelect(item.id, item.name)}
-              className="w-full px-3 py-2 text-left hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              className="w-full px-3 py-2 text-left text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 transition-colors"
             >
               {item.name}
             </button>
           ))}
           {loading && (
-            <div className="px-3 py-2 text-gray-500 text-center">Загрузка...</div>
+            <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-center">Загрузка...</div>
           )}
         </div>
       )}

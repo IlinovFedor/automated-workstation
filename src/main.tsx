@@ -2,7 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SettingsPage, TimetablePage, LessonPage } from '@/pages';
+import { getTheme, applyTheme } from '@/store';
 import '@/index.css';
+
+const theme = getTheme();
+applyTheme(theme);
+
+if (theme === 'system') {
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handler = () => applyTheme('system');
+  mediaQuery.addEventListener('change', handler);
+}
 
 function App() {
   return (

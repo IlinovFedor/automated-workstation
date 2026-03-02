@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Lesson } from '@/types';
 import { LessonCard } from './LessonCard';
+import { WeekView } from './WeekView';
 import { getLessonsForDate, generateDatesRange, formatDate, isToday } from '@/utils/date';
 
 interface LessonFeedProps {
@@ -13,11 +14,34 @@ export function LessonFeed({ lessons, loading }: LessonFeedProps) {
   const [daysAfter, setDaysAfter] = useState(14);
   const [showTodayButton, setShowTodayButton] = useState(false);
   const [dates, setDates] = useState<Date[]>([]);
+  const [isLandscape, setIsLandscape] = useState(false);
   
   const loadMoreBeforeRef = useRef<HTMLDivElement>(null);
   const loadMoreAfterRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isLandscapeOrientation = window.matchMedia('(orientation: landscape)').matches;
+      const isWideScreen = window.matchMedia('(min-width: 768px)').matches;
+      setIsLandscape(isLandscapeOrientation && isWideScreen);
+    };
+
+    checkOrientation();
+    
+    const mediaQuery = window.matchMedia('(orientation: landscape)');
+    const wideScreenQuery = window.matchMedia('(min-width: 768px)');
+    
+    const handler = () => checkOrientation();
+    mediaQuery.addEventListener('change', handler);
+    wideScreenQuery.addEventListener('change', handler);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+      wideScreenQuery.removeEventListener('change', handler);
+    };
+  }, []);
 
   useEffect(() => {
     const today = new Date();
@@ -101,17 +125,21 @@ export function LessonFeed({ lessons, loading }: LessonFeedProps) {
 
   if (lessons.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
         Расписание не найдено
       </div>
     );
+  }
+
+  if (isLandscape) {
+    return <WeekView lessons={lessons} />;
   }
 
   const groups = groupedLessons();
 
   if (groups.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
         Нет занятий в выбранном периоде
       </div>
     );
@@ -126,7 +154,7 @@ export function LessonFeed({ lessons, loading }: LessonFeedProps) {
             key={group.date.toISOString()} 
             ref={group.isToday ? todayRef : undefined}
           >
-            <h2 className={`text-sm font-medium mb-2 px-1 ${group.isToday ? 'text-blue-600' : 'text-gray-500'}`}>
+            <h2 className={`text-sm font-medium mb-2 px-1 ${group.isToday ? 'text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>
               {group.isToday ? 'Сегодня' : formatDate(group.date)}
             </h2>
             <div className="space-y-2">
