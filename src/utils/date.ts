@@ -1,3 +1,5 @@
+import { DAY_NAMES } from '@/types';
+
 export function minutesToTime(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -13,6 +15,11 @@ export function formatDate(date: Date): string {
     day: 'numeric',
     month: 'long',
   });
+}
+
+export function formatDateWithDayOfWeek(date: Date): string {
+  const dayOfWeek = DAY_NAMES[getDayOfWeek(date)];
+  return `${dayOfWeek}, ${formatDate(date)}`;
 }
 
 export function formatDateWithYear(date: Date): string {
