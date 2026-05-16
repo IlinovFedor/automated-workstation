@@ -16,7 +16,7 @@ import (
 
 const (
 	sheetName         = "Лист1"
-	timetableCellName = "A1"
+	timetableCellName = "C2"
 	lessonDuration    = 90 * time.Minute
 	lessonsPerDay     = 12
 	unknownValue      = "Unknown"
@@ -129,19 +129,32 @@ func (x *Parser) ParseLessonsFromBytes(b []byte) error {
 
 	allLessons := make([]Lesson, 0)
 
-	for colIndex := firstSubgroupCol; colIndex <= secondSubgroupCol; colIndex++ {
-		subgroup, err := getSubgroupName(file, colIndex)
+	endOfGroups, err := getEndOfGroups(file)
+	if err != nil {
+		return err
+	}
+
+	for colIndex := firstSubgroupCol; colIndex < endOfGroups; colIndex += 2 {
+		subgroupsCount := 1
+		isDuplicate, err := isDuplicateSubgroup(file, colIndex)
 		if err != nil {
 			return err
 		}
-
-		pending := &pendingData{}
-		lessons, err := x.parseSubgroupLessons(file, mergeCells, colIndex, subgroup, timetableName, pending)
-		if err != nil {
-			return err
+		if isDuplicate {
+			subgroupsCount++
 		}
 
-		if !isDuplicateSubgroup(allLessons, lessons) {
+		for i := 0; i < subgroupsCount; i++ {
+			subgroup, err := getSubgroupName(file, colIndex+i, subgroupsCount)
+			if err != nil {
+				return err
+			}
+			pending := &pendingData{}
+			lessons, err := x.parseSubgroupLessons(file, mergeCells, colIndex+i, subgroup, timetableName, pending)
+			if err != nil {
+				return err
+			}
+
 			allLessons = append(allLessons, lessons...)
 			x.addSubgroup(subgroup)
 			x.subgroupsAssignments = append(x.subgroupsAssignments, pending.subgroupsAssignments...)
@@ -154,10 +167,46 @@ func (x *Parser) ParseLessonsFromBytes(b []byte) error {
 	return nil
 }
 
-func isDuplicateSubgroup(existing, new []Lesson) bool {
-	return slices.EqualFunc(existing, new, func(a, b Lesson) bool {
-		return a.RawName() == b.RawName()
-	})
+func getEndOfGroups(file *excelize.File) (int, error) {
+	for col := firstSubgroupCol; ; col++ {
+		cell, err := excelize.CoordinatesToCellName(col, subgroupRow)
+		if err != nil {
+			return 0, err
+		}
+		value, err := file.GetCellValue(sheetName, cell)
+		if err != nil {
+			return 0, err
+		}
+
+		if value == "" {
+			return col, nil
+		}
+	}
+}
+
+func isDuplicateSubgroup(file *excelize.File, colIndex int) (bool, error) {
+	for row := firstLessonRow; row <= lastLessonRow; row++ {
+		cell1, err := excelize.CoordinatesToCellName(colIndex, row)
+		if err != nil {
+			return false, err
+		}
+		value1, err := file.GetCellValue(sheetName, cell1)
+		if err != nil {
+			return false, err
+		}
+		cell2, err := excelize.CoordinatesToCellName(colIndex+1, row)
+		if err != nil {
+			return false, err
+		}
+		value2, err := file.GetCellValue(sheetName, cell2)
+		if err != nil {
+			return false, err
+		}
+		if value1 != value2 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func getTimetableTitle(file *excelize.File) (string, error) {
@@ -168,7 +217,7 @@ func getTimetableTitle(file *excelize.File) (string, error) {
 	return timetable, nil
 }
 
-func getSubgroupName(file *excelize.File, colIndex int) (string, error) {
+func getSubgroupName(file *excelize.File, colIndex, subgroupCount int) (string, error) {
 	cellName, err := excelize.CoordinatesToCellName(colIndex, subgroupRow)
 	if err != nil {
 		return "", fmt.Errorf("failed to get subgroup cell name: %w", err)
@@ -181,8 +230,8 @@ func getSubgroupName(file *excelize.File, colIndex int) (string, error) {
 
 	subgroup = removeAllSpaces(subgroup)
 
-	if !strings.Contains(subgroup, "пг") {
-		subgroupNumber := colIndex - 2
+	if !strings.Contains(subgroup, "пг") && subgroupCount != 1 {
+		subgroupNumber := 2 - colIndex%2
 		subgroup += fmt.Sprintf("(%dпг)", subgroupNumber)
 	}
 
