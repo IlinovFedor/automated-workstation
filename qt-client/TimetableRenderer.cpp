@@ -127,8 +127,6 @@ void TimetableRenderer::setup_connections() {
     });
 
     connect(ics_export_button, &QPushButton::clicked, this, [this]() {
-        qDebug() << ics_url;
-        qDebug() << "ics_url";
         clipboard->setText(ics_url);
     });
 }

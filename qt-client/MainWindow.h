@@ -18,6 +18,12 @@ class MainWindow : public QWidget {
 
     QVBoxLayout *viewer_layout;
 
+    QPushButton *painter_button;
+    QPushButton *locations_button;
+    QPushButton *subgroups_button;
+    QPushButton *subjects_button;
+    QPushButton *teachers_button;
+    QPushButton *timetables_button;
     QPushButton *dispatcher_button;
 
     TimetableRenderer *renderer;
