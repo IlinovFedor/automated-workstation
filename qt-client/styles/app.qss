@@ -1,0 +1,19 @@
+@font-face {
+    color: "#1B1F26"
+    font-family: "Roboto";
+    font-style: normal;
+    font-weight: 100 900;
+    src: url(":/styles/Roboto/Roboto-VariableFont_wdth,wght.ttf");
+}
+
+@font-face {
+    color: "#1B1F26"
+    font-family: "Roboto";
+    font-style: italic;
+    font-weight: 100 900;
+    src: url(":/styles/Roboto/Roboto-Italic-VariableFont_wdth,wght.ttf");
+}
+
+QWidget {
+    font-family: "Roboto";
+}

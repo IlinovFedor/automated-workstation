@@ -38,6 +38,8 @@ services:
       target: final
     expose:
       - 8466
+    ports:
+      - "8466:8466"
     depends_on:
       timetables-postgres:
         condition: service_healthy

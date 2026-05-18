@@ -26,26 +26,21 @@
 }
 
 #ui_lesson[lessonCategory="(лек)"] {
-    background-color: #E6EFFE;
-    border-left: 5px solid #3b82f6;
+    background-color: #B3C1F8;
+    border-left: 5px solid #002FE7;
 }
 
 #ui_lesson[lessonCategory="(пр)"] {
-    background-color: #E3F8EB;
-    border-left: 5px solid #22c55e;
+    background-color: #FFD6C6;
+    border-left: 5px solid #FF7641;
 }
 
 #ui_lesson[lessonCategory="(лаб)"] {
-    background-color: #FEEDE2;
-    border-left: 5px solid #f97316;
+    background-color: #FFFDCC;
+    border-left: 5px solid #FFF854;
 }
 
 #ui_lesson[lessonCategory="(кср)"] {
-    background-color: #E9D4FD;
-    border-left: 5px solid #a855f7;
-}
-
-#ui_lesson[lessonCategory=""] {
-    background-color: #F3F4F6;
-    border-left: 5px solid #9CA3AF;
+    background-color: #E0DCF6;
+    border-left: 5px solid #968AE1;
 }

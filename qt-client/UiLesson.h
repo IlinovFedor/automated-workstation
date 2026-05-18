@@ -24,19 +24,6 @@ class UiLesson : public QWidget {
     std::vector<std::pair<QLabel*, QLabel*>> teacher_location_assignments;
     QHash<QLabel*, QString> label_full_texts;
 
-    const QMap<QString, QColor> label_color_map = {
-        {"(лек)", "#3b82f6"},
-        {"(пр)", "#22c55e"},
-        {"(лаб)", "#f97316"},
-        {"(кср)", "#a855f7"},
-    };
-    const QMap<QString, QColor> box_color_map = {
-        {"(лек)", "#E6EFFE"},
-        {"(пр)", "#E3F8EB"},
-        {"(лаб)", "#FEEDE2"},
-        {"(кср)", "#E9D4FD"},
-    };
-
     QString minutes_to_time(int minutes);
 
 public:

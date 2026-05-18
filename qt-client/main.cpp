@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QFile>
 #include <QPushButton>
 #include <QtNetwork/QNetworkReply>
 
@@ -9,6 +10,10 @@
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
+    QFile style_file(":/styles/app.qss");
+    if (style_file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        a.setStyleSheet(style_file.readAll());
+    }
     // OpenAPI::OAIDefaultApi api;
     // QUrl url("http://localhost:8470");
     // api.setNewServerForAllOperations(url);

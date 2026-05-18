@@ -6,6 +6,7 @@
 #define QT_CLIENT_TIMETABLEPAINTER_H
 #include <QApplication>
 #include <QWidget>
+#include <QDate>
 #include <QGraphicsView>
 #include <QVBoxLayout>
 
@@ -17,23 +18,29 @@ class TimetablePainter : public QWidget {
     QGraphicsView *view;
     QVBoxLayout *layout;
 
-    uchar active_day_number;
+    bool is_cur_date_active = false;
+    QDate selected_date;
 
     QList<OpenAPI::OAILesson> lessons;
-    const  QColor line_color;
+    QDate week_date;
 
     void draw_days();
 
     void draw_hours();
 
     void draw_lessons();
+    void draw_day_highlight();
 
 public:
-    TimetablePainter(QWidget *parent);
+    TimetablePainter(QWidget *parent, bool cur_date_status);
 
     void clear_lessons();
+    void refresh();
+    void set_week_date(const QDate &date);
+    void set_selected_date(const QDate &date);
+    void clear_selected_date();
 
-    void resizeEvent(QResizeEvent *event);
+    void resizeEvent(QResizeEvent *event) override;
 
     float get_col_width();
 

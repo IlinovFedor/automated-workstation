@@ -21,9 +21,13 @@ add_executable(qt_client main.cpp
         CustomButton.h
         TimetablePainter.cpp
         TimetablePainter.h
+        TimetableRenderer.cpp
+        TimetableRenderer.h
         UiLesson.cpp
         UiLesson.h
-        resources.qrc)
+        resources.qrc
+        TimetableRenderer.cpp
+        TimetableRenderer.h)
 target_link_libraries(qt_client
         Qt::Core
         Qt::Gui

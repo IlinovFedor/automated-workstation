@@ -16,27 +16,10 @@ MainWindow::MainWindow() {
 
     viewer_layout = new QVBoxLayout(this);
 
-    dispatcher_button = new CustomButton("Авторизация", this);
-
-    lessons_by_locations_button = new CustomButton("Поиск по аудиториям", this);
-    lessons_by_subgroups_button = new CustomButton("Поиск по группам", this);
-    lessons_by_subjects_button = new CustomButton("Поиск по предметам", this);
-    lessons_by_teachers_button = new CustomButton("Поиск по преподавателям", this);
-
-    buttons_layout->addWidget(lessons_by_subgroups_button);
-    buttons_layout->addWidget(lessons_by_teachers_button);
-    buttons_layout->addWidget(lessons_by_subjects_button);
-    buttons_layout->addWidget(lessons_by_locations_button);
+    dispatcher_button = new QPushButton("Авторизация", this);
     buttons_layout->addWidget(dispatcher_button);
 
-    painter = new TimetablePainter(this);
+    renderer = new TimetableRenderer(this);
     horizontal_layout->addWidget(buttons_container);
-    horizontal_layout->addWidget(painter);
-
-    OpenAPI::OAIDefaultApi* api = new OpenAPI::OAIDefaultApi;
-    QUrl url("http://localhost:8470");
-    api->setNewServerForAllOperations(url);
-    api->lessonsTableIdGet(50, "subgroups");
-    connect(api, &OpenAPI::OAIDefaultApi::lessonsTableIdGetSignal,
-            painter, &TimetablePainter::set_lessons);
+    horizontal_layout->addWidget(renderer);
 }

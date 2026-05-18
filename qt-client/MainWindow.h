@@ -9,6 +9,7 @@
 #include <QHBoxLayout>
 #include "CustomButton.h"
 #include "TimetablePainter.h"
+#include "TimetableRenderer.h"
 
 class MainWindow : public QWidget {
     Q_OBJECT
@@ -17,14 +18,9 @@ class MainWindow : public QWidget {
 
     QVBoxLayout *viewer_layout;
 
-    CustomButton *dispatcher_button;
+    QPushButton *dispatcher_button;
 
-    CustomButton *lessons_by_locations_button;
-    CustomButton *lessons_by_subgroups_button;
-    CustomButton *lessons_by_subjects_button;
-    CustomButton *lessons_by_teachers_button;
-
-    TimetablePainter *painter;
+    TimetableRenderer *renderer;
 
 public:
     MainWindow();
