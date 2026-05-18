@@ -1,0 +1,47 @@
+#ui_lesson {
+    border-radius: 6px;
+}
+
+#ui_lesson QLabel {
+    font-size: 12px;
+    color: #111827;
+}
+
+#ui_lesson #lesson_time {
+    font-size: 11px;
+    color: #6B7280;
+}
+
+#ui_lesson #lesson_subject {
+    font-weight: 600;
+}
+
+#ui_lesson #lesson_subgroups {
+    font-size: 11px;
+    color: #6B7280;
+}
+
+#ui_lesson[lessonCategory="(лек)"] {
+    background-color: #E6EFFE;
+    border-left: 5px solid #3b82f6;
+}
+
+#ui_lesson[lessonCategory="(пр)"] {
+    background-color: #E3F8EB;
+    border-left: 5px solid #22c55e;
+}
+
+#ui_lesson[lessonCategory="(лаб)"] {
+    background-color: #FEEDE2;
+    border-left: 5px solid #f97316;
+}
+
+#ui_lesson[lessonCategory="(кср)"] {
+    background-color: #E9D4FD;
+    border-left: 5px solid #a855f7;
+}
+
+#ui_lesson[lessonCategory=""] {
+    background-color: #F3F4F6;
+    border-left: 5px solid #9CA3AF;
+}

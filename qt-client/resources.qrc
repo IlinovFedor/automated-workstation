@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>styles/ui_lesson.qss</file>
+    </qresource>
+</RCC>

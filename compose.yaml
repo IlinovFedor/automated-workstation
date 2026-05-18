@@ -9,6 +9,8 @@ services:
       - timetables-db-data:/var/lib/postgresql/data
     expose:
       - 5432
+    ports:
+      - "5432:5432"
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
