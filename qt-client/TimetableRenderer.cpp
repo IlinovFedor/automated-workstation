@@ -12,6 +12,8 @@
 #include <QWidgetAction>
 #include <QCompleter>
 
+const QString basePath = "http://localhost:8466";
+
 TimetableRenderer::TimetableRenderer(QWidget *parent) : QWidget(parent) {
     qRegisterMetaType<SearchMode>();
 
@@ -36,6 +38,7 @@ TimetableRenderer::TimetableRenderer(QWidget *parent) : QWidget(parent) {
     next_week_button = new QPushButton(">", this);
     today_button = new QPushButton("Сегодня", this);
     calendar_button = new QPushButton("Календарь", this);
+    ics_export_button = new QPushButton("Экспорт ICS", this);
 
     toolbar_layout->addWidget(table_combo);
     toolbar_layout->addWidget(search_combo);
@@ -43,6 +46,7 @@ TimetableRenderer::TimetableRenderer(QWidget *parent) : QWidget(parent) {
     toolbar_layout->addWidget(next_week_button);
     toolbar_layout->addWidget(today_button);
     toolbar_layout->addWidget(calendar_button);
+    toolbar_layout->addWidget(ics_export_button);
 
     painter = new TimetablePainter(this, true);
 
@@ -54,11 +58,13 @@ TimetableRenderer::TimetableRenderer(QWidget *parent) : QWidget(parent) {
     search_mode = SearchMode::Subgroup;
 
     api->setParent(this);
-    api->setNewServerForAllOperations(QUrl("http://localhost:8466"));
+    api->setNewServerForAllOperations(QUrl(basePath));
 
     search_timer = new QTimer(this);
     search_timer->setSingleShot(true);
     search_timer->setInterval(500);
+
+    clipboard = QApplication::clipboard();
 
     setup_connections();
 }
@@ -93,11 +99,10 @@ void TimetableRenderer::setup_connections() {
 
     connect(search_combo, &QComboBox::activated, this, &TimetableRenderer::get_lessons);
 
-    connect(api, &OpenAPI::OAIDefaultApi::subgroupsGetSignal, this, &TimetableRenderer::show_subgroups_lessons);
-    connect(api, &OpenAPI::OAIDefaultApi::teachersGetSignal, this, &TimetableRenderer::show_teachers_lessons);
-    connect(api, &OpenAPI::OAIDefaultApi::locationsGetSignal, this, &TimetableRenderer::show_locations_lessons);
-    connect(api, &OpenAPI::OAIDefaultApi::subjectsGetSignal, this, &TimetableRenderer::show_subjects_lessons);
-
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsGetSignal, this, &TimetableRenderer::add_subgroups_to_combo);
+    connect(api, &OpenAPI::OAIDefaultApi::teachersGetSignal, this, &TimetableRenderer::add_teachers_to_combo);
+    connect(api, &OpenAPI::OAIDefaultApi::locationsGetSignal, this, &TimetableRenderer::add_locations_to_combo);
+    connect(api, &OpenAPI::OAIDefaultApi::subjectsGetSignal, this, &TimetableRenderer::add_subjects_to_combo);
 
     connect(api, &OpenAPI::OAIDefaultApi::lessonsTableIdGetSignal, this, [this](QList<OpenAPI::OAILesson> summary) {
         raw_lessons = summary;
@@ -121,7 +126,11 @@ void TimetableRenderer::setup_connections() {
         calendar_menu->exec(calendar_button->mapToGlobal(QPoint(0, calendar_button->height())));
     });
 
-
+    connect(ics_export_button, &QPushButton::clicked, this, [this]() {
+        qDebug() << ics_url;
+        qDebug() << "ics_url";
+        clipboard->setText(ics_url);
+    });
 }
 
 void TimetableRenderer::request_search(const QString &text) {
@@ -145,10 +154,6 @@ void TimetableRenderer::request_search(const QString &text) {
                               OpenAPI::OptionalParam<QString>(text));
             break;
     }
-}
-
-void TimetableRenderer::request_lessons(qint32 id) {
-    api->lessonsTableIdGet(id, table_name_for_mode());
 }
 
 void TimetableRenderer::update_painter() {
@@ -191,55 +196,46 @@ bool TimetableRenderer::is_week_even(const QDate &date) const {
     return first_week_is_even ? (week_index % 2 == 0) : (week_index % 2 == 1);
 }
 
-QString TimetableRenderer::table_name_for_mode() const {
-    switch (search_mode) {
-        case SearchMode::Subgroup:
-            return subgroups_table;
-        case SearchMode::Teacher:
-            return teachers_table;
-        case SearchMode::Subject:
-            return subjects_table;
-        case SearchMode::Location:
-            return locations_table;
-    }
-
-    return subgroups_table;
-}
-
 void TimetableRenderer::combobox_request() {
     QString search = search_combo->currentText();
     switch (search_mode) {
-        case SearchMode::Location: api->locationsGet(5, 0, search);
+        case SearchMode::Location: api->locationsGet(20, 0, search);
             break;
-        case SearchMode::Subgroup: api->subgroupsGet(5, 0, search);
+        case SearchMode::Subgroup: api->subgroupsGet(20, 0, search);
             break;
-        case SearchMode::Teacher: api->teachersGet(5, 0, search);
+        case SearchMode::Teacher: api->teachersGet(20, 0, search);
             break;
-        case SearchMode::Subject: api->subjectsGet(5, 0, search);
+        case SearchMode::Subject: api->subjectsGet(20, 0, search);
             break;
     }
 }
 
 void TimetableRenderer::get_lessons(int i) {
     auto id = this->search_combo->itemData(i).toInt();
+    QString table_name;
     switch (search_mode) {
         case SearchMode::Location:
             api->lessonsTableIdGet(id, locations_table);
+            table_name = locations_table;
             break;
         case SearchMode::Subgroup:
             api->lessonsTableIdGet(id, subgroups_table);
+            table_name = subgroups_table;
             break;
         case SearchMode::Teacher:
             api->lessonsTableIdGet(id, teachers_table);
+            table_name = teachers_table;
             break;
         case SearchMode::Subject:
             api->lessonsTableIdGet(id, subjects_table);
+            table_name = subjects_table;
             break;
     }
+    ics_url = basePath + "/lessons/" + table_name + "/"  + QString::number(id) + "?format=ics";
     painter->set_selected_date(current_date);
 }
 
-void TimetableRenderer::show_subgroups_lessons(OpenAPI::OAIListSubgroups summary) {
+void TimetableRenderer::add_subgroups_to_combo(OpenAPI::OAIListSubgroups summary) {
     auto search = search_combo->currentText();
     search_combo->blockSignals(true);
     search_combo->clear();
@@ -250,7 +246,7 @@ void TimetableRenderer::show_subgroups_lessons(OpenAPI::OAIListSubgroups summary
     search_combo->showPopup();
 }
 
-void TimetableRenderer::show_teachers_lessons(OpenAPI::OAIListTeachers summary) {
+void TimetableRenderer::add_teachers_to_combo(OpenAPI::OAIListTeachers summary) {
     auto search = search_combo->currentText();
     search_combo->blockSignals(true);
     search_combo->clear();
@@ -261,7 +257,7 @@ void TimetableRenderer::show_teachers_lessons(OpenAPI::OAIListTeachers summary) 
     search_combo->showPopup();
 }
 
-void TimetableRenderer::show_subjects_lessons(OpenAPI::OAIListSubjects summary) {
+void TimetableRenderer::add_subjects_to_combo(OpenAPI::OAIListSubjects summary) {
     auto search = search_combo->currentText();
     search_combo->blockSignals(true);
     search_combo->clear();
@@ -272,7 +268,7 @@ void TimetableRenderer::show_subjects_lessons(OpenAPI::OAIListSubjects summary) 
     search_combo->showPopup();
 }
 
-void TimetableRenderer::show_locations_lessons(OpenAPI::OAIListLocations summary) {
+void TimetableRenderer::add_locations_to_combo(OpenAPI::OAIListLocations summary) {
     auto search = search_combo->currentText();
     search_combo->blockSignals(true);
     search_combo->clear();
