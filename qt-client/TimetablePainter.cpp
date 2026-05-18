@@ -19,9 +19,9 @@ const uint day_row_height = 50;
 const uchar hour_start = 7;
 const uchar hour_end = 24;
 
-const uint row_height_px = 80;
+const uint row_height_px = 100;
 
-TimetablePainter::TimetablePainter(QWidget *parent) : QWidget(parent) {
+TimetablePainter::TimetablePainter(QWidget *parent) : QWidget(parent), line_color("#D9D9D9"){
     scene = new QGraphicsScene(this);
     view = new QGraphicsView(scene, this);
 
@@ -60,9 +60,9 @@ void TimetablePainter::draw_days() {
         time_item->setParent(this);
         time_item->setPlainText(labels[i].data());
         time_item->setPos(x, 0);
-        scene->addItem(time_item);
 
-        scene->addLine(x, 0, x, r.height());
+        scene->addItem(time_item);
+        scene->addLine(x, 0, x, r.height(), QPen(line_color));
     }
 }
 
@@ -71,14 +71,13 @@ void TimetablePainter::draw_hours() {
     
     for (uchar i = hour_start; i < hour_end; i++) {
         int y = (i - hour_start) * (r.height() - day_row_height) / (hour_end - hour_start) + day_row_height;
-
         std::string time_string = std::to_string(i) + ":00";
         auto *time_item = new QGraphicsTextItem;
         time_item->setParent(this);
         time_item->setPlainText(time_string.data());
         time_item->setPos(0, y);
         scene->addItem(time_item);
-        scene->addLine(0, y, r.width(), y);
+        scene->addLine(0, y, r.width(), y, QPen(line_color));
     }
 }
 

@@ -5,6 +5,10 @@
 #ui_lesson QLabel {
     font-size: 12px;
     color: #111827;
+    qproperty-wordWrap: true;
+    qproperty-alignment: AlignLeft;
+    padding: 0px;
+    margin: 0px;
 }
 
 #ui_lesson #lesson_time {

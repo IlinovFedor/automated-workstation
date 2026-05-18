@@ -20,6 +20,7 @@ class TimetablePainter : public QWidget {
     uchar active_day_number;
 
     QList<OpenAPI::OAILesson> lessons;
+    const  QColor line_color;
 
     void draw_days();
 

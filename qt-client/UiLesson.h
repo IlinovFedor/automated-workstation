@@ -38,11 +38,6 @@ class UiLesson : public QWidget {
     };
 
     QString minutes_to_time(int minutes);
-    QString elide_two_lines(const QString &text, const QFont &font, int width, int max_lines) const;
-    void update_elided_texts();
-
-protected:
-    void resizeEvent(QResizeEvent *event) override;
 
 public:
     OpenAPI::OAILesson lesson;
