@@ -10,6 +10,7 @@
 #include "EditorWidgets/SubgroupEditorWidget.h"
 #include "EditorWidgets/SubjectsEditorWidget.h"
 #include "EditorWidgets/TeachersEditorWidget.h"
+#include "EditorWidgets/TimetablesEditorWidget.h"
 
 void PaginationWidget::setup_connections() {
     connect(search_line_edit, &QLineEdit::returnPressed, this, [this]() {
@@ -51,6 +52,11 @@ void PaginationWidget::setup_connections() {
     connect(api, &OpenAPI::OAIDefaultApi::subjectsGetSignal, this, &PaginationWidget::show_subjects);
     connect(api, &OpenAPI::OAIDefaultApi::subjectsPostSignal, this, [this](OpenAPI::OAISubject summary) {
         items_layout->addWidget(new SubjectsEditorWidget(this, api, summary));
+    });
+
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesGetSignal, this, &PaginationWidget::show_timetables);
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesPostSignal, this, [this](OpenAPI::OAITimetable summary) {
+        items_layout->addWidget(new TimetablesEditorWidget(this, api, summary));
     });
 }
 
@@ -178,6 +184,30 @@ void PaginationWidget::show_locations(OpenAPI::OAIListLocations summary) {
 
     for (auto location: summary.getLocations())
         items_layout->addWidget(new LocationsEditorWidget(this, api, location));
+
+    prev_page_button->setEnabled(page > 1);
+    next_page_button->setEnabled(page < total_pages);
+}
+
+void PaginationWidget::show_timetables(OpenAPI::OAIListTimetables summary) {
+    while (QLayoutItem *item = items_layout->takeAt(0)) {
+        delete item->widget();
+        delete item;
+    }
+
+    total_pages = summary.getPagination().getTotalPages();
+
+    page_combo->blockSignals(true);
+    page_combo->clear();
+    static int cnt = 0;
+    for (int i = 1; i <= total_pages; i++) {
+        page_combo->addItem("Страница " + QString::number(i), i);
+    }
+    page_combo->setCurrentIndex(page - 1);
+    page_combo->blockSignals(false);
+
+    for (auto timetable: summary.getTimetables())
+        items_layout->addWidget(new TimetablesEditorWidget(this, api, timetable));
 
     prev_page_button->setEnabled(page > 1);
     next_page_button->setEnabled(page < total_pages);

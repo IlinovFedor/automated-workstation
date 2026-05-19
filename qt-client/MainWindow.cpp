@@ -63,6 +63,10 @@ MainWindow::MainWindow() {
         set_view(new PaginationWidget(this, SearchMode::Subject, api));
     });
 
+    connect(timetables_button, &QPushButton::clicked, this, [this]() {
+        set_view(new PaginationWidget(this, SearchMode::Timetables, api));
+    });
+
 }
 
 void MainWindow::set_view(QWidget* new_widget) {

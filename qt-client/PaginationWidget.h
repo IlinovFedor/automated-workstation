@@ -46,6 +46,8 @@ public:
 
     void show_locations(OpenAPI::OAIListLocations summary);
 
+    void show_timetables(OpenAPI::OAIListTimetables summary);
+
 public slots:
     void get_data();
 
