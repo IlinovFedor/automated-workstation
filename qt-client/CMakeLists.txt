@@ -37,7 +37,11 @@ add_executable(qt_client main.cpp
         EditorWidgets/SubjectsEditorWidget.cpp
         EditorWidgets/SubjectsEditorWidget.h
         EditorWidgets/TimetablesEditorWidget.cpp
-        EditorWidgets/TimetablesEditorWidget.h)
+        EditorWidgets/TimetablesEditorWidget.h
+        EditorWidgets/SearchComboWidget.cpp
+        EditorWidgets/SearchComboWidget.h
+        EditorWidgets/LessonEditorWidget.cpp
+        EditorWidgets/LessonEditorWidget.h)
 
 target_link_libraries(qt_client
         Qt::Core

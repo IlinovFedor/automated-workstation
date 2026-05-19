@@ -3,6 +3,7 @@
 
 #include <QString>
 const QString basePath = "http://localhost:8466";
+inline QString apiKey = "admin";
 
 enum class SearchMode {
     Subgroup,

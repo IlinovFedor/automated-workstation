@@ -7,6 +7,7 @@
 #include "TimetableViewer/TimetablePainter.h"
 #include <QFile>
 #include <QFontMetrics>
+#include <QMouseEvent>
 #include <QResizeEvent>
 
 QString UiLesson::minutes_to_time(int minutes) {
@@ -73,4 +74,11 @@ UiLesson::UiLesson(const OpenAPI::OAILesson &new_lesson) {
     line_subject->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     line_subgroups->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
+}
+
+void UiLesson::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        emit lessonClicked(lesson);
+    }
+    QWidget::mousePressEvent(event);
 }

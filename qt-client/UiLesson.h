@@ -30,6 +30,12 @@ public:
     OpenAPI::OAILesson lesson;
 
     UiLesson(const OpenAPI::OAILesson &new_lesson);
+
+signals:
+    void lessonClicked(OpenAPI::OAILesson lesson);
+
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
 };
 
 

@@ -9,7 +9,6 @@
 #include <QAbstractItemView>
 #include <QHBoxLayout>
 #include <QPushButton>
-#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QClipboard>
@@ -17,6 +16,9 @@
 #include "OAILesson.h"
 #include "TimetablePainter.h"
 #include "../api/BasePath.h"
+
+#include "../EditorWidgets/LessonEditorWidget.h"
+#include "../EditorWidgets/SearchComboWidget.h"
 
 const QString subgroups_table("subgroups");
 const QString teachers_table("teachers");
@@ -29,7 +31,7 @@ class TimetableRenderer : public QWidget {
     QVBoxLayout *root_layout;
 
     QComboBox *table_combo;
-    QComboBox *search_combo;
+    SearchComboWidget *search_combo;
     QPushButton *prev_week_button;
     QPushButton *next_week_button;
     QPushButton *today_button;
@@ -47,11 +49,7 @@ class TimetableRenderer : public QWidget {
     SearchMode search_mode;
     QList<OpenAPI::OAILesson> raw_lessons;
 
-    QTimer *search_timer;
-
     void setup_connections();
-
-    void request_search(const QString &text);
 
     void update_painter();
 
@@ -60,18 +58,7 @@ class TimetableRenderer : public QWidget {
     bool is_week_even(const QDate &date) const;
 
 private slots:
-    void combobox_request();
-
-    void get_lessons(int i);
-
-    void add_subgroups_to_combo(OpenAPI::OAIListSubgroups summary);
-
-    void add_teachers_to_combo(OpenAPI::OAIListTeachers summary);
-
-    void add_subjects_to_combo(OpenAPI::OAIListSubjects summary);
-
-    void add_locations_to_combo(OpenAPI::OAIListLocations summary);
-
+    void get_lessons(int id, const QString &name);
     void setSearchMode(SearchMode mode);
 
 public:

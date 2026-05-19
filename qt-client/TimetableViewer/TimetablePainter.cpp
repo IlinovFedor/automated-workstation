@@ -142,6 +142,8 @@ void TimetablePainter::draw_lessons() {
         proxy->setGeometry(rect);
         proxy->setMinimumSize(rect.size().toSize());
         proxy->setMaximumSize(rect.size().toSize());
+
+        connect(ui_lesson, &UiLesson::lessonClicked, this, &TimetablePainter::lessonClicked);
     }
 }
 

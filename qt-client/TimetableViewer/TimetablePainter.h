@@ -48,6 +48,9 @@ public:
 
 public slots:
     void set_lessons(QList<OpenAPI::OAILesson> new_lessons);
+
+signals:
+    void lessonClicked(OpenAPI::OAILesson lesson);
 };
 
 
