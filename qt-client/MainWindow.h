@@ -7,9 +7,8 @@
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include "CustomButton.h"
-#include "TimetablePainter.h"
-#include "TimetableRenderer.h"
+#include "TimetableViewer/TimetablePainter.h"
+#include "TimetableViewer/TimetableRenderer.h"
 
 class MainWindow : public QWidget {
     Q_OBJECT

@@ -3,7 +3,7 @@
 //
 
 #include "TimetableRenderer.h"
-#include "api/BasePath.h"
+#include "../api/BasePath.h"
 #include <QCalendarWidget>
 #include <QLineEdit>
 #include <QMenu>

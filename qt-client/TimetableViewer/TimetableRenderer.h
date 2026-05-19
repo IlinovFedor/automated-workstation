@@ -16,7 +16,7 @@
 #include "OAIDefaultApi.h"
 #include "OAILesson.h"
 #include "TimetablePainter.h"
-#include "api/BasePath.h"
+#include "../api/BasePath.h"
 
 const QString subgroups_table("subgroups");
 const QString teachers_table("teachers");

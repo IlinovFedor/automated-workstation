@@ -12,7 +12,7 @@
 #include <QGraphicsProxyWidget>
 
 #include "OAIDefaultApi.h"
-#include "UiLesson.h"
+#include "../UiLesson.h"
 
 const uint time_col_width = 75;
 const uint day_row_height = 50;

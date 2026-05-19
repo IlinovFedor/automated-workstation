@@ -4,7 +4,7 @@
 
 #include "UiLesson.h"
 
-#include "TimetablePainter.h"
+#include "TimetableViewer/TimetablePainter.h"
 #include <QFile>
 #include <QFontMetrics>
 #include <QResizeEvent>

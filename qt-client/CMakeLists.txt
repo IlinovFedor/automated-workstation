@@ -17,17 +17,15 @@ add_subdirectory(api/client)
 add_executable(qt_client main.cpp
         MainWindow.cpp
         MainWindow.h
-        CustomButton.cpp
-        CustomButton.h
-        TimetablePainter.cpp
-        TimetablePainter.h
-        TimetableRenderer.cpp
-        TimetableRenderer.h
+        TimetableViewer/TimetablePainter.cpp
+        TimetableViewer/TimetablePainter.h
+        TimetableViewer/TimetableRenderer.cpp
+        TimetableViewer/TimetableRenderer.h
         UiLesson.cpp
         UiLesson.h
         resources.qrc
-        TimetableRenderer.cpp
-        TimetableRenderer.h
+        TimetableViewer/TimetableRenderer.cpp
+        TimetableViewer/TimetableRenderer.h
         PaginationWidget.cpp
         PaginationWidget.h
         EditorWidgets/SubgroupEditorWidget.cpp
