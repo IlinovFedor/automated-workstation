@@ -6,6 +6,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 	repo "timetables/internal/repository/sqlc"
@@ -80,19 +81,39 @@ func NewParser() *Parser {
 }
 
 func (x *Parser) addSubgroup(name string) { x.subgroups[name] = struct{}{} }
-func (x *Parser) Subgroups() []string     { return slices.Collect(maps.Keys(x.subgroups)) }
+func (x *Parser) Subgroups() []string {
+	subgroups := slices.Collect(maps.Keys(x.subgroups))
+	sort.Strings(subgroups)
+	return subgroups
+}
 
 func (x *Parser) addTeacher(name string) { x.teachers[name] = struct{}{} }
-func (x *Parser) Teachers() []string     { return slices.Collect(maps.Keys(x.teachers)) }
+func (x *Parser) Teachers() []string {
+	teachers := slices.Collect(maps.Keys(x.teachers))
+	sort.Strings(teachers)
+	return teachers
+}
 
 func (x *Parser) addLocation(name string) { x.locations[name] = struct{}{} }
-func (x *Parser) Locations() []string     { return slices.Collect(maps.Keys(x.locations)) }
+func (x *Parser) Locations() []string {
+	locations := slices.Collect(maps.Keys(x.locations))
+	sort.Strings(locations)
+	return locations
+}
 
 func (x *Parser) addSubject(name string) { x.subjects[name] = struct{}{} }
-func (x *Parser) Subjects() []string     { return slices.Collect(maps.Keys(x.subjects)) }
+func (x *Parser) Subjects() []string {
+	subjects := slices.Collect(maps.Keys(x.subjects))
+	sort.Strings(subjects)
+	return subjects
+}
 
 func (x *Parser) addTimetable(name string) { x.timetables[name] = struct{}{} }
-func (x *Parser) Timetables() []string     { return slices.Collect(maps.Keys(x.timetables)) }
+func (x *Parser) Timetables() []string {
+	timetables := slices.Collect(maps.Keys(x.timetables))
+	sort.Strings(timetables)
+	return timetables
+}
 
 func (x *Parser) GetLessonsInsertParams() []repo.InsertStagingLessonsParams {
 	params := make([]repo.InsertStagingLessonsParams, len(x.lessons))
