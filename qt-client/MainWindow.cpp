@@ -6,15 +6,20 @@
 
 #include "OAIDefaultApi.h"
 #include "OAIHttpRequest.h"
+#include "PaginationWidget.h"
+#include "api/BasePath.h"
 
 MainWindow::MainWindow() {
+    api = new OpenAPI::OAIDefaultApi;
+    api->setParent(this);
+    api->setNewServerForAllOperations(QUrl(basePath));
+    api->addHeaders("Cookie", "apiKey=admin");
+
     horizontal_layout = new QHBoxLayout(this);
 
     QWidget* buttons_container = new QWidget;
     buttons_container->setMaximumWidth(200);
     buttons_layout = new QVBoxLayout(buttons_container);
-
-    viewer_layout = new QVBoxLayout(this);
 
     painter_button = new QPushButton("Расписание", this);
     subgroups_button = new QPushButton("Группы", this);
@@ -32,7 +37,10 @@ MainWindow::MainWindow() {
     buttons_layout->addWidget(timetables_button);
     buttons_layout->addWidget(dispatcher_button);
 
-    renderer = new TimetableRenderer(this);
+    //renderer = new TimetableRenderer(this, api);
+    auto kal = new PaginationWidget(this, SearchMode::Subgroup, api);
     horizontal_layout->addWidget(buttons_container);
-    horizontal_layout->addWidget(renderer);
+    horizontal_layout->addWidget(kal);
+//    horizontal_layout->addWidget(renderer);
+
 }

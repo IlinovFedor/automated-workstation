@@ -16,15 +16,7 @@
 #include "OAIDefaultApi.h"
 #include "OAILesson.h"
 #include "TimetablePainter.h"
-
-enum class SearchMode {
-    Subgroup,
-    Teacher,
-    Subject,
-    Location
-};
-
-Q_DECLARE_METATYPE(SearchMode)
+#include "api/BasePath.h"
 
 const QString subgroups_table("subgroups");
 const QString teachers_table("teachers");
@@ -83,7 +75,7 @@ private slots:
     void setSearchMode(SearchMode mode);
 
 public:
-    explicit TimetableRenderer(QWidget *parent = nullptr);
+    TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *new_api);
 };
 
 #endif //QT_CLIENT_TIMETABLERENDERER_H

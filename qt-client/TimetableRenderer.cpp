@@ -3,7 +3,7 @@
 //
 
 #include "TimetableRenderer.h"
-
+#include "api/BasePath.h"
 #include <QCalendarWidget>
 #include <QLineEdit>
 #include <QMenu>
@@ -12,9 +12,9 @@
 #include <QWidgetAction>
 #include <QCompleter>
 
-const QString basePath = "http://localhost:8466";
+TimetableRenderer::TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *new_api) : QWidget(parent) {
+    api = new_api;
 
-TimetableRenderer::TimetableRenderer(QWidget *parent) : QWidget(parent) {
     qRegisterMetaType<SearchMode>();
 
     root_layout = new QVBoxLayout(this);
@@ -53,12 +53,8 @@ TimetableRenderer::TimetableRenderer(QWidget *parent) : QWidget(parent) {
     root_layout->addLayout(toolbar_layout);
     root_layout->addWidget(painter);
 
-    api = new OpenAPI::OAIDefaultApi;
     current_date = QDate::currentDate();
     search_mode = SearchMode::Subgroup;
-
-    api->setParent(this);
-    api->setNewServerForAllOperations(QUrl(basePath));
 
     search_timer = new QTimer(this);
     search_timer->setSingleShot(true);
@@ -229,7 +225,7 @@ void TimetableRenderer::get_lessons(int i) {
             table_name = subjects_table;
             break;
     }
-    ics_url = basePath + "/lessons/" + table_name + "/"  + QString::number(id) + "?format=ics";
+    ics_url = basePath + "/lessons/" + table_name + "/" + QString::number(id) + "?format=ics";
     painter->set_selected_date(current_date);
 }
 

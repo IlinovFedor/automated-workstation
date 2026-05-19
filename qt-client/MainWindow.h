@@ -16,8 +16,6 @@ class MainWindow : public QWidget {
     QHBoxLayout *horizontal_layout;
     QVBoxLayout *buttons_layout;
 
-    QVBoxLayout *viewer_layout;
-
     QPushButton *painter_button;
     QPushButton *locations_button;
     QPushButton *subgroups_button;
@@ -27,6 +25,8 @@ class MainWindow : public QWidget {
     QPushButton *dispatcher_button;
 
     TimetableRenderer *renderer;
+
+    OpenAPI::OAIDefaultApi* api;
 
 public:
     MainWindow();

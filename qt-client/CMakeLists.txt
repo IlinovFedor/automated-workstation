@@ -27,7 +27,12 @@ add_executable(qt_client main.cpp
         UiLesson.h
         resources.qrc
         TimetableRenderer.cpp
-        TimetableRenderer.h)
+        TimetableRenderer.h
+        PaginationWidget.cpp
+        PaginationWidget.h
+        EditorWidgets/SubgroupEditorWidget.cpp
+        EditorWidgets/SubgroupEditorWidget.h)
+
 target_link_libraries(qt_client
         Qt::Core
         Qt::Gui
