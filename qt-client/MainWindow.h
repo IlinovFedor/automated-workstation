@@ -21,6 +21,7 @@ class MainWindow : public QWidget {
     QPushButton *subjects_button;
     QPushButton *teachers_button;
     QPushButton *timetables_button;
+    QPushButton *import_button;
     QPushButton *dispatcher_button;
 
     QWidget *current_widget;
@@ -29,8 +30,11 @@ class MainWindow : public QWidget {
 
     void set_view(QWidget *new_widget);
 
+    void setup_api_connections();
+
 private slots:
     void login_dialog();
+    void import_dialog();
 
 public:
     MainWindow();
