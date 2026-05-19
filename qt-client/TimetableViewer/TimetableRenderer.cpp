@@ -145,7 +145,8 @@ void TimetableRenderer::setup_connections() {
         lesson.setCategory("(лек)");
         lesson.setDay(1);
         lesson.setRepeatRule(0);
-        lesson.setTimetable(raw_lessons[0].getTimetable());
+        if (raw_lessons.size() != 0)
+            lesson.setTimetable(raw_lessons[0].getTimetable());
         lesson.setTimeStart(480);
         lesson.setTimeEnd(570);
         std::map<int, int> mp;

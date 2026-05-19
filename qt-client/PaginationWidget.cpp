@@ -216,19 +216,19 @@ void PaginationWidget::show_timetables(OpenAPI::OAIListTimetables summary) {
 void PaginationWidget::get_data() {
     switch (mode) {
         case SearchMode::Subgroup:
-            api->subgroupsGet(20, page, search_line_edit->text());
+            api->subgroupsGet(10, page, search_line_edit->text());
             break;
         case SearchMode::Teacher:
-            api->teachersGet(20, page, search_line_edit->text());
+            api->teachersGet(10, page, search_line_edit->text());
             break;
         case SearchMode::Subject:
-            api->subjectsGet(20, page, search_line_edit->text());
+            api->subjectsGet(10, page, search_line_edit->text());
             break;
         case SearchMode::Location:
-            api->locationsGet(20, page, search_line_edit->text());
+            api->locationsGet(10, page, search_line_edit->text());
             break;
         case SearchMode::Timetables:
-            api->timetablesGet(20, page, search_line_edit->text());
+            api->timetablesGet(10, page, search_line_edit->text());
             break;
     }
 }
