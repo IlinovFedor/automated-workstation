@@ -14,7 +14,10 @@
 #include <QDialog>
 
 TimetableRenderer::TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *new_api) : QWidget(parent) {
-    api = new_api;
+    api = new OpenAPI::OAIDefaultApi();
+    api->setParent(this);
+    api->setNewServerForAllOperations(basePath);
+    api->addHeaders("Cookie", "apiKey=" + apiKey);
 
     qRegisterMetaType<SearchMode>();
 
@@ -36,6 +39,7 @@ TimetableRenderer::TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *ne
     today_button = new QPushButton("Сегодня", this);
     calendar_button = new QPushButton("Календарь", this);
     ics_export_button = new QPushButton("Экспорт ICS", this);
+    new_lesson_button = new QPushButton("+", this);
 
     toolbar_layout->addWidget(table_combo);
     toolbar_layout->addWidget(search_combo);
@@ -44,6 +48,7 @@ TimetableRenderer::TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *ne
     toolbar_layout->addWidget(today_button);
     toolbar_layout->addWidget(calendar_button);
     toolbar_layout->addWidget(ics_export_button);
+    toolbar_layout->addWidget(new_lesson_button);
 
     painter = new TimetablePainter(this, true);
 
@@ -91,12 +96,24 @@ void TimetableRenderer::setup_connections() {
         dialog.setWindowTitle("Редактирование урока");
         auto layout = new QVBoxLayout(&dialog);
         auto editor = new LessonEditorWidget(&dialog, api, lesson);
-        connect(editor, &LessonEditorWidget::NewLessonData, this, [this, lesson](OpenAPI::OAILesson new_lesson_data) {
-            for (int i = 0; i < raw_lessons.size(); i++)
-                if (raw_lessons[i].getId() == lesson.getId())
-                    raw_lessons[i] = new_lesson_data;
-            update_painter();
-        });
+        connect(editor, &LessonEditorWidget::LessonDataEditedSignal, this,
+                [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+                    for (int i = 0; i < raw_lessons.size(); i++)
+                        if (raw_lessons[i].getId() == new_lesson_data.getId()) {
+                            raw_lessons[i] = new_lesson_data;
+                            api->lessonsIdPatch(lesson.getId(), new_lesson_data);
+                        }
+                    update_painter();
+                });
+        connect(editor, &LessonEditorWidget::LessonDeleteSignal, this,
+                [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+                    for (int i = 0; i < raw_lessons.size(); i++)
+                        if (raw_lessons[i].getId() == new_lesson_data.getId()) {
+                            raw_lessons.remove(i);
+                            api->lessonsIdDelete(new_lesson_data.getId());
+                        }
+                    update_painter();
+                });
         layout->addWidget(editor);
         dialog.exec();
     });
@@ -120,6 +137,53 @@ void TimetableRenderer::setup_connections() {
 
     connect(ics_export_button, &QPushButton::clicked, this, [this]() {
         clipboard->setText(ics_url);
+    });
+
+    connect(new_lesson_button, &QPushButton::clicked, this, [this]() {
+        QDialog dialog(this);
+        OpenAPI::OAILesson lesson;
+        lesson.setCategory("(лек)");
+        lesson.setDay(1);
+        lesson.setRepeatRule(0);
+        lesson.setTimetable(raw_lessons[0].getTimetable());
+        lesson.setTimeStart(480);
+        lesson.setTimeEnd(570);
+        std::map<int, int> mp;
+        for (auto raw_lesson: raw_lessons)
+            for (auto subgroup: raw_lesson.getSubgroups())
+                mp[subgroup.getId()]++;
+
+        OpenAPI::OAISubgroup best;
+        int best_count = 0;
+
+        for (auto &raw_lesson: raw_lessons) {
+            for (auto &subgroup: raw_lesson.getSubgroups()) {
+                int id = subgroup.getId();
+                int count = mp[id];
+
+                if (count > best_count) {
+                    best_count = count;
+                    best = subgroup;
+                }
+            }
+        }
+
+        auto tmp = lesson.getSubgroups();
+        tmp.push_back(best);
+        lesson.setSubgroups(tmp);
+
+        dialog.setWindowTitle("Создание");
+        auto layout = new QVBoxLayout(&dialog);
+        auto editor = new LessonEditorWidget(&dialog, api, lesson);
+        connect(editor, &LessonEditorWidget::LessonDataEditedSignal, this,
+                [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+                    new_lesson_data.setId("00000000-0000-0000-0000-000000000000");
+                    api->lessonsPost(new_lesson_data);
+                    raw_lessons.push_back(new_lesson_data);
+                    update_painter();
+                });
+        layout->addWidget(editor);
+        dialog.exec();
     });
 }
 

@@ -37,6 +37,7 @@ class TimetableRenderer : public QWidget {
     QPushButton *today_button;
     QPushButton *calendar_button;
     QPushButton *ics_export_button;
+    QPushButton *new_lesson_button;
 
     QString ics_url;
     QClipboard *clipboard;

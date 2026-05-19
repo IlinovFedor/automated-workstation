@@ -9,7 +9,6 @@
 
 LessonEditorWidget::LessonEditorWidget(QWidget *parent, OpenAPI::OAIDefaultApi *new_api,
                                        const OpenAPI::OAILesson &new_lesson) : QWidget(parent) {
-    api = new_api;
     lesson = new_lesson;
 
     root_layout = new QVBoxLayout(this);
@@ -226,7 +225,7 @@ void LessonEditorWidget::setup_connections() {
             assignments.append(build_assignment_from_row(row));
         }
         lesson.setTeacherLocationAssignments(assignments);
-        api->lessonsIdPatch(lesson.getId(), lesson);
+        emit LessonDataEditedSignal(lesson);
     });
 
     connect(remove_button, &QPushButton::clicked, this, [this]() {
@@ -236,15 +235,9 @@ void LessonEditorWidget::setup_connections() {
             "Удалить?",
             QMessageBox::Yes | QMessageBox::No
         );
-        if (reply == QMessageBox::Yes) {
-            api->lessonsIdDelete(lesson.getId());
-        }
+        if (reply == QMessageBox::Yes)
+            emit LessonDeleteSignal(lesson);
     });
-
-    connect(api,
-            &OpenAPI::OAIDefaultApi::lessonsIdPatchSignal,
-            this,
-            &LessonEditorWidget::NewLessonData);
 }
 
 QTime LessonEditorWidget::minutes_to_time(int minutes) {
@@ -327,10 +320,6 @@ OpenAPI::OAITeacherLocationAssignment LessonEditorWidget::build_assignment_from_
         if (location_obj.isValid()) {
             assignment.setLocation(location_obj.value<OpenAPI::OAILocation>());
         }
-    }
-    qDebug() << "row=" << row << "combos count=" << combos.size();
-    for (auto c: combos) {
-        qDebug() << "  combo parent=" << c->parent() << "x=" << c->geometry().x();
     }
     return assignment;
 }
