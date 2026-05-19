@@ -11,6 +11,7 @@
 #include "OAIHttpRequest.h"
 #include "PaginationWidget.h"
 #include "api/BasePath.h"
+#include <QFileDialog>
 
 MainWindow::MainWindow() {
     api = new OpenAPI::OAIDefaultApi;
@@ -69,31 +70,7 @@ MainWindow::MainWindow() {
         set_view(new PaginationWidget(this, SearchMode::Timetables, api));
     });
 
-    connect(dispatcher_button, &QPushButton::clicked, this, [this]() {
-        QDialog dialog(this);
-        dialog.setWindowTitle("Авторизация");
-        auto layout = new QVBoxLayout(&dialog);
-        auto key_edit = new QLineEdit(&dialog);
-        key_edit->setPlaceholderText("API Key");
-        auto buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-        layout->addWidget(key_edit);
-        layout->addWidget(buttons);
-        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-        if (dialog.exec() == QDialog::Accepted) {
-            horizontal_layout->removeWidget(current_widget);
-            delete current_widget;
-
-            delete api;
-            api = new OpenAPI::OAIDefaultApi;
-            api->setParent(this);
-            api->setNewServerForAllOperations(QUrl(basePath));
-            api->addHeaders("Cookie", "apiKey=" + key_edit->text());
-
-            current_widget = new TimetableRenderer(this, api);
-            horizontal_layout->addWidget(current_widget, 1);
-        }
-    });
+    connect(dispatcher_button, &QPushButton::clicked, this, &MainWindow::login_dialog);
 }
 
 void MainWindow::set_view(QWidget *new_widget) {
@@ -103,4 +80,30 @@ void MainWindow::set_view(QWidget *new_widget) {
     }
     current_widget = new_widget;
     horizontal_layout->addWidget(current_widget, 1);
+}
+
+void MainWindow::login_dialog() {
+    QDialog dialog(this);
+    dialog.setWindowTitle("Авторизация");
+    auto layout = new QVBoxLayout(&dialog);
+    auto key_edit = new QLineEdit(&dialog);
+    key_edit->setPlaceholderText("API Key");
+    auto buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    layout->addWidget(key_edit);
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    if (dialog.exec() == QDialog::Accepted) {
+        horizontal_layout->removeWidget(current_widget);
+        delete current_widget;
+
+        delete api;
+        api = new OpenAPI::OAIDefaultApi;
+        api->setParent(this);
+        api->setNewServerForAllOperations(QUrl(basePath));
+        api->addHeaders("Cookie", "apiKey=" + key_edit->text());
+
+        current_widget = new TimetableRenderer(this, api);
+        horizontal_layout->addWidget(current_widget, 1);
+    }
 }

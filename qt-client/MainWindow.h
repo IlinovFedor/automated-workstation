@@ -28,6 +28,10 @@ class MainWindow : public QWidget {
     OpenAPI::OAIDefaultApi *api;
 
     void set_view(QWidget *new_widget);
+
+private slots:
+    void login_dialog();
+
 public:
     MainWindow();
 };
