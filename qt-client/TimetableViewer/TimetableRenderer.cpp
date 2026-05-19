@@ -91,6 +91,12 @@ void TimetableRenderer::setup_connections() {
         dialog.setWindowTitle("Редактирование урока");
         auto layout = new QVBoxLayout(&dialog);
         auto editor = new LessonEditorWidget(&dialog, api, lesson);
+        connect(editor, &LessonEditorWidget::NewLessonData, this, [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+            for (int i = 0; i < raw_lessons.size(); i++)
+                if (raw_lessons[i].getId() == lesson.getId())
+                    raw_lessons[i] = new_lesson_data;
+            update_painter();
+        });
         layout->addWidget(editor);
         dialog.exec();
     });

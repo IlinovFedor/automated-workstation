@@ -49,3 +49,6 @@ target_link_libraries(qt_client
         Qt::Widgets
         QtOpenAPIClient
 )
+
+target_compile_options(qt_client PRIVATE -fsanitize=address)
+target_link_options(qt_client PRIVATE -fsanitize=address)

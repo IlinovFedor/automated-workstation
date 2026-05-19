@@ -47,7 +47,7 @@ void TimetablePainter::resizeEvent(QResizeEvent *event) {
 
 void TimetablePainter::set_lessons(QList<OpenAPI::OAILesson> new_lessons) {
     lessons = new_lessons;
-    refresh();
+    QTimer::singleShot(0, this, &TimetablePainter::refresh);
 }
 
 void TimetablePainter::set_week_date(const QDate &date) {
@@ -66,8 +66,15 @@ void TimetablePainter::clear_selected_date() {
 }
 
 void TimetablePainter::refresh() {
+    for (auto item : scene->items()) {
+        auto proxy = dynamic_cast<QGraphicsProxyWidget*>(item);
+        if (proxy) {
+            proxy->setWidget(nullptr);
+            scene->removeItem(proxy);
+            delete proxy;
+        }
+    }
     scene->clear();
-    scene->update();
     draw_day_highlight();
     draw_days();
     draw_hours();

@@ -60,6 +60,8 @@ class LessonEditorWidget : public QWidget {
 
 public:
     LessonEditorWidget(QWidget *parent, OpenAPI::OAIDefaultApi *new_api, const OpenAPI::OAILesson &new_lesson);
+signals:
+    void NewLessonData(OpenAPI::OAILesson lesson);
 };
 
 #endif //QT_CLIENT_LESSONEDITORWIDGET_H

@@ -9,6 +9,7 @@
 #include <QFontMetrics>
 #include <QMouseEvent>
 #include <QResizeEvent>
+#include <QTimer>
 
 QString UiLesson::minutes_to_time(int minutes) {
     return QString("%1:%2")
@@ -78,7 +79,10 @@ UiLesson::UiLesson(const OpenAPI::OAILesson &new_lesson) {
 
 void UiLesson::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
-        emit lessonClicked(lesson);
+        auto lesson_copy = lesson;
+        QTimer::singleShot(0, this, [this, lesson_copy]() {
+            emit lessonClicked(lesson_copy);
+        });
     }
     QWidget::mousePressEvent(event);
 }

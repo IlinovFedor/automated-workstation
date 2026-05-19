@@ -10,6 +10,7 @@ SearchComboWidget::SearchComboWidget(QWidget *parent, SearchMode new_mode)
     : QWidget(parent) {
 
     api = new OpenAPI::OAIDefaultApi();
+    api->setParent(this);
     api->setNewServerForAllOperations(basePath);
     api->addHeaders("Cookie", "apiKey=" + apiKey);
 

@@ -227,7 +227,6 @@ void LessonEditorWidget::setup_connections() {
         }
         lesson.setTeacherLocationAssignments(assignments);
         api->lessonsIdPatch(lesson.getId(), lesson);
-        qDebug() << lesson.asJson();
     });
 
     connect(remove_button, &QPushButton::clicked, this, [this]() {
@@ -241,6 +240,11 @@ void LessonEditorWidget::setup_connections() {
             api->lessonsIdDelete(lesson.getId());
         }
     });
+
+    connect(api,
+            &OpenAPI::OAIDefaultApi::lessonsIdPatchSignal,
+            this,
+            &LessonEditorWidget::NewLessonData);
 }
 
 QTime LessonEditorWidget::minutes_to_time(int minutes) {
@@ -325,7 +329,7 @@ OpenAPI::OAITeacherLocationAssignment LessonEditorWidget::build_assignment_from_
         }
     }
     qDebug() << "row=" << row << "combos count=" << combos.size();
-    for (auto c : combos) {
+    for (auto c: combos) {
         qDebug() << "  combo parent=" << c->parent() << "x=" << c->geometry().x();
     }
     return assignment;
