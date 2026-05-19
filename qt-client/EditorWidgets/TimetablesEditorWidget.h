@@ -17,6 +17,7 @@ class TimetablesEditorWidget : public QWidget{
     QLineEdit* name_line_edit;
     QPushButton* start_date_button;
     QPushButton* end_date_button;
+    QComboBox* parity_combo;
     QPushButton* submit_button;
     QPushButton* remove_button;
     QHBoxLayout* horizontal_layout;

@@ -18,6 +18,10 @@ TimetablesEditorWidget::TimetablesEditorWidget(QWidget *parent, OpenAPI::OAIDefa
     name_line_edit = new QLineEdit(timetable.getName(), this);
     start_date_button = new QPushButton(timetable.getDateStart().toLocalTime().toString(), this);
     end_date_button = new QPushButton(timetable.getDateEnd().toLocalTime().toString(), this);
+    parity_combo = new QComboBox(this);
+    parity_combo->addItem("Нечет", 1);
+    parity_combo->addItem("Чет", 2);
+    parity_combo->setCurrentIndex(timetable.getWeek() - 1);
 
     submit_button = new QPushButton("Сохранить", this);
     remove_button = new QPushButton("Удалить", this);
@@ -27,6 +31,7 @@ TimetablesEditorWidget::TimetablesEditorWidget(QWidget *parent, OpenAPI::OAIDefa
     horizontal_layout->addWidget(name_line_edit);
     horizontal_layout->addWidget(start_date_button);
     horizontal_layout->addWidget(end_date_button);
+    horizontal_layout->addWidget(parity_combo);
 
     horizontal_layout->addWidget(submit_button);
     horizontal_layout->addWidget(remove_button);
@@ -50,7 +55,7 @@ void TimetablesEditorWidget::setup_connections() {
             QMessageBox::Yes | QMessageBox::No
         );
         if (reply == QMessageBox::Yes) {
-            api->locationsIdDelete(timetable.getId());
+            api->timetablesIdDelete(timetable.getId());
             deleteLater();
         }
     });
@@ -87,5 +92,9 @@ void TimetablesEditorWidget::setup_connections() {
             timetable.setDateEnd(date_edit->dateTime().toUTC());
             end_date_button->setText(date_edit->dateTime().toLocalTime().toString());
         }
+    });
+
+    connect(parity_combo, &QComboBox::currentIndexChanged, this, [this](int idx) {
+       timetable.setWeek(parity_combo->itemData(idx).toInt());
     });
 }
