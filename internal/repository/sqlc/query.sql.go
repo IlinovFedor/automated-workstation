@@ -15,18 +15,37 @@ import (
 
 const createLesson = `-- name: CreateLesson :one
 
-INSERT INTO lessons (subject_id, category, day, time_start, time_end, repeat_rule, timetable_id, hash)
-VALUES ($1, $2, $3, $4, $5, $6, $7,
-        md5(
-                (SELECT name FROM subjects WHERE id = $1) || '|' ||
-                $2 || '|' ||
-                $3::TEXT || '|' ||
-                $4::TEXT || '|' ||
-                $5::TEXT || '|' ||
-                $6::TEXT || '|' ||
-                (SELECT name FROM timetables WHERE id = timetable_id) || '|' ||
-                ''))
-RETURNING id
+INSERT INTO lessons (
+    subject_id,
+    category,
+    day,
+    time_start,
+    time_end,
+    repeat_rule,
+    timetable_id,
+    hash
+)
+VALUES (
+           $1::int,
+           $2::text,
+           $3::int,
+           $4::int,
+           $5::int,
+           $6::int,
+           $7::int,
+           md5(
+                   concat_ws('|',
+                             (SELECT name FROM subjects WHERE id = $1),
+                             $2,
+                             $3::text,
+                             $4::text,
+                             $5::text,
+                             $6::text,
+                             (SELECT name FROM timetables WHERE id = $7)
+                   )
+           )
+       )
+    RETURNING id
 `
 
 type CreateLessonParams struct {
@@ -156,7 +175,9 @@ func (q *Queries) CreateTimetable(ctx context.Context, arg CreateTimetableParams
 }
 
 const deleteLesson = `-- name: DeleteLesson :exec
-DELETE FROM lessons WHERE id = $1
+DELETE
+FROM lessons
+WHERE id = $1
 `
 
 func (q *Queries) DeleteLesson(ctx context.Context, id uuid.UUID) error {
@@ -254,12 +275,22 @@ func (q *Queries) FlushStagingToMain(ctx context.Context) error {
 }
 
 const getLesson = `-- name: GetLesson :one
-SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end
+SELECT l.id,
+       l.subject_id,
+       l.category,
+       l.day,
+       l.time_start,
+       l.time_end,
+       l.repeat_rule,
+       l.timetable_id,
+       s.name  AS subject_name,
+       tt.name AS timetable_name,
+       tt.date_start,
+       tt.date_end
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
-         WHERE l.id = $1
+WHERE l.id = $1
 ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
 `
 
@@ -299,9 +330,11 @@ func (q *Queries) GetLesson(ctx context.Context, id uuid.UUID) (GetLessonRow, er
 }
 
 const getLessonAssignments = `-- name: GetLessonAssignments :many
-SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+SELECT lesson_id, teacher_id, location_id,
+       (SELECT name FROM teachers WHERE teachers.id = teacher_id)    AS teacher_name,
        (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
-FROM teacher_location_assignments WHERE lesson_id = $1
+FROM teacher_location_assignments
+WHERE lesson_id = $1
 ORDER BY teacher_name, location_name
 `
 
@@ -340,10 +373,12 @@ func (q *Queries) GetLessonAssignments(ctx context.Context, lessonID uuid.UUID) 
 }
 
 const getLessonAssignmentsByLocationId = `-- name: GetLessonAssignmentsByLocationId :many
-SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+SELECT lesson_id, teacher_id, location_id,
+       (SELECT name FROM teachers WHERE teachers.id = teacher_id)    AS teacher_name,
        (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
 FROM teacher_location_assignments
-WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
+WHERE lesson_id IN
+      (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
 ORDER BY teacher_name, location_name
 `
 
@@ -382,7 +417,8 @@ func (q *Queries) GetLessonAssignmentsByLocationId(ctx context.Context, location
 }
 
 const getLessonAssignmentsBySubgroupId = `-- name: GetLessonAssignmentsBySubgroupId :many
-SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+SELECT lesson_id, teacher_id, location_id,
+       (SELECT name FROM teachers WHERE teachers.id = teacher_id)    AS teacher_name,
        (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
 FROM teacher_location_assignments
 WHERE lesson_id IN (SELECT lesson_id FROM subgroups_assignments WHERE subgroups_assignments.subgroup_id = $1)
@@ -424,7 +460,8 @@ func (q *Queries) GetLessonAssignmentsBySubgroupId(ctx context.Context, subgroup
 }
 
 const getLessonAssignmentsBySubjectId = `-- name: GetLessonAssignmentsBySubjectId :many
-SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+SELECT lesson_id, teacher_id, location_id,
+       (SELECT name FROM teachers WHERE teachers.id = teacher_id)    AS teacher_name,
        (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
 FROM teacher_location_assignments
 WHERE lesson_id IN (SELECT lessons.id FROM lessons WHERE subject_id = $1)
@@ -466,10 +503,12 @@ func (q *Queries) GetLessonAssignmentsBySubjectId(ctx context.Context, subjectID
 }
 
 const getLessonAssignmentsByTeacherId = `-- name: GetLessonAssignmentsByTeacherId :many
-SELECT lesson_id, teacher_id, location_id, (SELECT name FROM teachers WHERE teachers.id = teacher_id) AS teacher_name,
+SELECT lesson_id, teacher_id, location_id,
+       (SELECT name FROM teachers WHERE teachers.id = teacher_id)    AS teacher_name,
        (SELECT name FROM locations WHERE locations.id = location_id) AS location_name
 FROM teacher_location_assignments
-WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
+WHERE lesson_id IN
+      (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
 ORDER BY teacher_name, location_name
 `
 
@@ -509,7 +548,8 @@ func (q *Queries) GetLessonAssignmentsByTeacherId(ctx context.Context, teacherID
 
 const getLessonSubgroups = `-- name: GetLessonSubgroups :many
 SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
-FROM subgroups_assignments WHERE lesson_id = $1
+FROM subgroups_assignments
+WHERE lesson_id = $1
 ORDER BY subgroup_name
 `
 
@@ -540,12 +580,24 @@ func (q *Queries) GetLessonSubgroups(ctx context.Context, lessonID uuid.UUID) ([
 }
 
 const getLessonsByLocationsId = `-- name: GetLessonsByLocationsId :many
-SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
+SELECT l.id,
+       l.subject_id,
+       l.category,
+       l.day,
+       l.time_start,
+       l.time_end,
+       l.repeat_rule,
+       l.timetable_id,
+       s.name  AS subject_name,
+       tt.name AS timetable_name,
+       tt.date_start,
+       tt.date_end,
+       tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
-WHERE l.id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
+WHERE l.id IN
+      (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
 ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
 `
 
@@ -600,8 +652,19 @@ func (q *Queries) GetLessonsByLocationsId(ctx context.Context, locationID int32)
 }
 
 const getLessonsBySubgroupId = `-- name: GetLessonsBySubgroupId :many
-SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
+SELECT l.id,
+       l.subject_id,
+       l.category,
+       l.day,
+       l.time_start,
+       l.time_end,
+       l.repeat_rule,
+       l.timetable_id,
+       s.name  AS subject_name,
+       tt.name AS timetable_name,
+       tt.date_start,
+       tt.date_end,
+       tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -660,8 +723,19 @@ func (q *Queries) GetLessonsBySubgroupId(ctx context.Context, subgroupID int32) 
 }
 
 const getLessonsBySubjectId = `-- name: GetLessonsBySubjectId :many
-SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
+SELECT l.id,
+       l.subject_id,
+       l.category,
+       l.day,
+       l.time_start,
+       l.time_end,
+       l.repeat_rule,
+       l.timetable_id,
+       s.name  AS subject_name,
+       tt.name AS timetable_name,
+       tt.date_start,
+       tt.date_end,
+       tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
@@ -720,12 +794,24 @@ func (q *Queries) GetLessonsBySubjectId(ctx context.Context, subjectID int32) ([
 }
 
 const getLessonsByTeacherId = `-- name: GetLessonsByTeacherId :many
-SELECT l.id, l.subject_id, l.category, l.day, l.time_start, l.time_end, l.repeat_rule, l.timetable_id,
-       s.name AS subject_name, tt.name AS timetable_name, tt.date_start, tt.date_end, tt.week
+SELECT l.id,
+       l.subject_id,
+       l.category,
+       l.day,
+       l.time_start,
+       l.time_end,
+       l.repeat_rule,
+       l.timetable_id,
+       s.name  AS subject_name,
+       tt.name AS timetable_name,
+       tt.date_start,
+       tt.date_end,
+       tt.week
 FROM lessons l
          JOIN subjects s ON s.id = subject_id
          JOIN timetables tt ON tt.id = timetable_id
-WHERE l.id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
+WHERE l.id IN
+      (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
 ORDER BY tt.date_start, l.day, l.time_start, l.repeat_rule
 `
 
@@ -782,7 +868,8 @@ func (q *Queries) GetLessonsByTeacherId(ctx context.Context, teacherID int32) ([
 const getLessonsSubgroupsByLocationId = `-- name: GetLessonsSubgroupsByLocationId :many
 SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
 FROM subgroups_assignments
-WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
+WHERE lesson_id IN
+      (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.location_id = $1)
 ORDER BY subgroup_name
 `
 
@@ -881,7 +968,8 @@ func (q *Queries) GetLessonsSubgroupsBySubjectId(ctx context.Context, subjectID 
 const getLessonsSubgroupsByTeacherId = `-- name: GetLessonsSubgroupsByTeacherId :many
 SELECT lesson_id, subgroup_id, (SELECT name FROM subgroups WHERE subgroups.id = subgroup_id) AS subgroup_name
 FROM subgroups_assignments
-WHERE lesson_id IN (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
+WHERE lesson_id IN
+      (SELECT lesson_id FROM teacher_location_assignments WHERE teacher_location_assignments.teacher_id = $1)
 ORDER BY subgroup_name
 `
 
@@ -926,11 +1014,11 @@ func (q *Queries) GetLocationById(ctx context.Context, id int32) (Location, erro
 
 const getLocationsOnPage = `-- name: GetLocationsOnPage :many
 
-SELECT id, name FROM locations
+SELECT id, name
+FROM locations
 WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
-ORDER BY name
-LIMIT $2::INTEGER
-    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+ORDER BY name LIMIT $2::INTEGER
+OFFSET $2::INTEGER * ($3::INTEGER - 1)
 `
 
 type GetLocationsOnPageParams struct {
@@ -961,7 +1049,8 @@ func (q *Queries) GetLocationsOnPage(ctx context.Context, arg GetLocationsOnPage
 }
 
 const getLocationsPagesAmount = `-- name: GetLocationsPagesAmount :one
-SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM locations
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT) ::INT
+FROM locations
 WHERE ($2::TEXT IS NULL OR name ILIKE '%' || $2::TEXT || '%')
 `
 
@@ -992,11 +1081,11 @@ func (q *Queries) GetSubgroupById(ctx context.Context, id int32) (Subgroup, erro
 
 const getSubgroupsOnPage = `-- name: GetSubgroupsOnPage :many
 
-SELECT id, name FROM subgroups
+SELECT id, name
+FROM subgroups
 WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
-ORDER BY name
-LIMIT $2::INTEGER
-    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+ORDER BY name LIMIT $2::INTEGER
+OFFSET $2::INTEGER * ($3::INTEGER - 1)
 `
 
 type GetSubgroupsOnPageParams struct {
@@ -1027,7 +1116,8 @@ func (q *Queries) GetSubgroupsOnPage(ctx context.Context, arg GetSubgroupsOnPage
 }
 
 const getSubgroupsPagesAmount = `-- name: GetSubgroupsPagesAmount :one
-SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM subgroups
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT) ::INT
+FROM subgroups
 WHERE ($2::TEXT IS NULL OR name ILIKE '%' || $2::TEXT || '%')
 `
 
@@ -1058,11 +1148,11 @@ func (q *Queries) GetSubjectById(ctx context.Context, id int32) (Subject, error)
 
 const getSubjectsOnPage = `-- name: GetSubjectsOnPage :many
 
-SELECT id, name FROM subjects
+SELECT id, name
+FROM subjects
 WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
-ORDER BY name
-LIMIT $2::INTEGER
-    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+ORDER BY name LIMIT $2::INTEGER
+OFFSET $2::INTEGER * ($3::INTEGER - 1)
 `
 
 type GetSubjectsOnPageParams struct {
@@ -1093,7 +1183,8 @@ func (q *Queries) GetSubjectsOnPage(ctx context.Context, arg GetSubjectsOnPagePa
 }
 
 const getSubjectsPagesAmount = `-- name: GetSubjectsPagesAmount :one
-SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM subjects
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT) ::INT
+FROM subjects
 WHERE ($2::TEXT IS NULL OR name ILIKE '%' || $2::TEXT || '%')
 `
 
@@ -1124,11 +1215,11 @@ func (q *Queries) GetTeacherById(ctx context.Context, id int32) (Teacher, error)
 
 const getTeachersOnPage = `-- name: GetTeachersOnPage :many
 
-SELECT id, name FROM teachers
+SELECT id, name
+FROM teachers
 WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
-ORDER BY name
-LIMIT $2::INTEGER
-    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+ORDER BY name LIMIT $2::INTEGER
+OFFSET $2::INTEGER * ($3::INTEGER - 1)
 `
 
 type GetTeachersOnPageParams struct {
@@ -1159,7 +1250,8 @@ func (q *Queries) GetTeachersOnPage(ctx context.Context, arg GetTeachersOnPagePa
 }
 
 const getTeachersPagesAmount = `-- name: GetTeachersPagesAmount :one
-SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM teachers
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT) ::INT
+FROM teachers
 WHERE ($2::TEXT IS NULL OR name ILIKE '%' || $2::TEXT || '%')
 `
 
@@ -1196,11 +1288,11 @@ func (q *Queries) GetTimetableById(ctx context.Context, id int32) (Timetable, er
 
 const getTimetablesOnPage = `-- name: GetTimetablesOnPage :many
 
-SELECT id, name, date_start, date_end, week FROM timetables
+SELECT id, name, date_start, date_end, week
+FROM timetables
 WHERE ($1::TEXT IS NULL OR name ILIKE '%' || $1::TEXT || '%')
-ORDER BY name
-LIMIT $2::INTEGER
-    OFFSET $2::INTEGER * ($3::INTEGER - 1)
+ORDER BY name LIMIT $2::INTEGER
+OFFSET $2::INTEGER * ($3::INTEGER - 1)
 `
 
 type GetTimetablesOnPageParams struct {
@@ -1237,7 +1329,8 @@ func (q *Queries) GetTimetablesOnPage(ctx context.Context, arg GetTimetablesOnPa
 }
 
 const getTimetablesPagesAmount = `-- name: GetTimetablesPagesAmount :one
-SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT)::INT FROM timetables
+SELECT CEILING(COUNT(*) / ($1::INT)::FLOAT) ::INT
+FROM timetables
 WHERE ($2::TEXT IS NULL OR name ILIKE '%' || $2::TEXT || '%')
 `
 
@@ -1276,14 +1369,15 @@ type InsertStagingTeacherLocationAssignmentsParams struct {
 }
 
 const patchLesson = `-- name: PatchLesson :exec
-UPDATE lessons SET subject_id = $1,
-                    category = $2,
-                    day = $3,
-                    time_start = $4,
-                    time_end = $5,
-                    repeat_rule = $6,
-                    timetable_id = $7,
-                    hash = calculate_lesson_hash($8)
+UPDATE lessons
+SET subject_id   = $1,
+    category     = $2,
+    day          = $3,
+    time_start   = $4,
+    time_end     = $5,
+    repeat_rule  = $6,
+    timetable_id = $7,
+    hash         = calculate_lesson_hash($8)
 WHERE id = $8
 `
 
@@ -1386,10 +1480,10 @@ func (q *Queries) PatchTeacherById(ctx context.Context, arg PatchTeacherByIdPara
 
 const patchTimetableById = `-- name: PatchTimetableById :one
 UPDATE timetables
-SET name = $1,
+SET name       = $1,
     date_start = $2,
-    date_end = $3,
-    week = $4
+    date_end   = $3,
+    week       = $4
 WHERE id = $5 RETURNING id, name, date_start, date_end, week
 `
 
