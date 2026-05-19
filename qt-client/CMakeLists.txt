@@ -31,7 +31,13 @@ add_executable(qt_client main.cpp
         PaginationWidget.cpp
         PaginationWidget.h
         EditorWidgets/SubgroupEditorWidget.cpp
-        EditorWidgets/SubgroupEditorWidget.h)
+        EditorWidgets/SubgroupEditorWidget.h
+        EditorWidgets/TeachersEditorWidget.cpp
+        EditorWidgets/TeachersEditorWidget.h
+        EditorWidgets/LocationsEditorWidget.cpp
+        EditorWidgets/LocationsEditorWidget.h
+        EditorWidgets/SubjectsEditorWidget.cpp
+        EditorWidgets/SubjectsEditorWidget.h)
 
 target_link_libraries(qt_client
         Qt::Core

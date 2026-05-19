@@ -37,10 +37,39 @@ MainWindow::MainWindow() {
     buttons_layout->addWidget(timetables_button);
     buttons_layout->addWidget(dispatcher_button);
 
-    //renderer = new TimetableRenderer(this, api);
-    auto kal = new PaginationWidget(this, SearchMode::Subgroup, api);
-    horizontal_layout->addWidget(buttons_container);
-    horizontal_layout->addWidget(kal);
-//    horizontal_layout->addWidget(renderer);
+    current_widget = new TimetableRenderer(this, api);
 
+    //auto kal = new PaginationWidget(this, SearchMode::Subgroup, api);
+    horizontal_layout->addWidget(buttons_container);
+    horizontal_layout->addWidget(current_widget);
+
+    connect(painter_button, &QPushButton::clicked, this, [this]() {
+        set_view(new TimetableRenderer(this, api));
+    });
+
+    connect(subgroups_button, &QPushButton::clicked, this, [this]() {
+        set_view(new PaginationWidget(this, SearchMode::Subgroup, api));
+    });
+
+    connect(teachers_button, &QPushButton::clicked, this, [this]() {
+        set_view(new PaginationWidget(this, SearchMode::Teacher, api));
+    });
+
+    connect(locations_button, &QPushButton::clicked, this, [this]() {
+        set_view(new PaginationWidget(this, SearchMode::Location, api));
+    });
+
+    connect(subjects_button, &QPushButton::clicked, this, [this]() {
+        set_view(new PaginationWidget(this, SearchMode::Subject, api));
+    });
+
+}
+
+void MainWindow::set_view(QWidget* new_widget) {
+    if (current_widget) {
+        horizontal_layout->removeWidget(current_widget);
+        delete current_widget;
+    }
+    current_widget = new_widget;
+    horizontal_layout->addWidget(current_widget, 1);
 }

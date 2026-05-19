@@ -22,9 +22,6 @@ void PaginationWidget::setup_connections() {
         page = idx + 1;
         get_data();
     });
-
-    connect(api, &OpenAPI::OAIDefaultApi::subgroupsGetSignal, this, &PaginationWidget::show_subgroups);
-
     connect(prev_page_button, &QPushButton::clicked, this, [this]() {
         page--;
         get_data();
@@ -36,8 +33,24 @@ void PaginationWidget::setup_connections() {
 
     connect(new_item_button, &QPushButton::clicked, this, &PaginationWidget::create_new_item);
 
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsGetSignal, this, &PaginationWidget::show_subgroups);
     connect(api, &OpenAPI::OAIDefaultApi::subgroupsPostSignal, this, [this](OpenAPI::OAISubgroup summary) {
         items_layout->addWidget(new SubgroupEditorWidget(this, api, summary));
+    });
+
+    connect(api, &OpenAPI::OAIDefaultApi::teachersGetSignal, this, &PaginationWidget::show_teachers);
+    connect(api, &OpenAPI::OAIDefaultApi::teachersPostSignal, this, [this](OpenAPI::OAITeacher summary) {
+        items_layout->addWidget(new TeachersEditorWidget(this, api, summary));
+    });
+
+    connect(api, &OpenAPI::OAIDefaultApi::locationsGetSignal, this, &PaginationWidget::show_locations);
+    connect(api, &OpenAPI::OAIDefaultApi::locationsPostSignal, this, [this](OpenAPI::OAILocation summary) {
+        items_layout->addWidget(new LocationsEditorWidget(this, api, summary));
+    });
+
+    connect(api, &OpenAPI::OAIDefaultApi::subjectsGetSignal, this, &PaginationWidget::show_subjects);
+    connect(api, &OpenAPI::OAIDefaultApi::subjectsPostSignal, this, [this](OpenAPI::OAISubject summary) {
+        items_layout->addWidget(new SubjectsEditorWidget(this, api, summary));
     });
 }
 

@@ -24,10 +24,11 @@ class MainWindow : public QWidget {
     QPushButton *timetables_button;
     QPushButton *dispatcher_button;
 
-    TimetableRenderer *renderer;
+    QWidget *current_widget;
 
-    OpenAPI::OAIDefaultApi* api;
+    OpenAPI::OAIDefaultApi *api;
 
+    void set_view(QWidget *new_widget);
 public:
     MainWindow();
 };
