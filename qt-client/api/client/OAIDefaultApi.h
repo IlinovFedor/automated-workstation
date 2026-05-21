@@ -31,6 +31,7 @@
 #include "OAISubject.h"
 #include "OAITeacher.h"
 #include "OAITimetable.h"
+#include "OAIUser.h"
 #include <QString>
 
 #include <QObject>
@@ -80,6 +81,9 @@ public:
     * @param[in]  id qint32 [required]
     */
     virtual void errorsIdGet(const qint32 &id);
+
+
+    virtual void getmeGet();
 
     /**
     * @param[in]  file OAIHttpFileElement [required]
@@ -286,6 +290,7 @@ private:
 
     void errorsGetCallback(OAIHttpRequestWorker *worker);
     void errorsIdGetCallback(OAIHttpRequestWorker *worker);
+    void getmeGetCallback(OAIHttpRequestWorker *worker);
     void importPostCallback(OAIHttpRequestWorker *worker);
     void lessonsIdDeleteCallback(OAIHttpRequestWorker *worker);
     void lessonsIdGetCallback(OAIHttpRequestWorker *worker);
@@ -322,6 +327,7 @@ Q_SIGNALS:
 
     void errorsGetSignal(OAIListErrors summary);
     void errorsIdGetSignal(OAIError summary);
+    void getmeGetSignal(OAIUser summary);
     void importPostSignal(OAIListErrors summary);
     void lessonsIdDeleteSignal();
     void lessonsIdGetSignal(OAILesson summary);
@@ -357,6 +363,7 @@ Q_SIGNALS:
 
     void errorsGetSignalFull(OAIHttpRequestWorker *worker, OAIListErrors summary);
     void errorsIdGetSignalFull(OAIHttpRequestWorker *worker, OAIError summary);
+    void getmeGetSignalFull(OAIHttpRequestWorker *worker, OAIUser summary);
     void importPostSignalFull(OAIHttpRequestWorker *worker, OAIListErrors summary);
     void lessonsIdDeleteSignalFull(OAIHttpRequestWorker *worker);
     void lessonsIdGetSignalFull(OAIHttpRequestWorker *worker, OAILesson summary);
@@ -391,6 +398,7 @@ Q_SIGNALS:
 
     void errorsGetSignalError(OAIListErrors summary, QNetworkReply::NetworkError error_type, const QString &error_str);
     void errorsIdGetSignalError(OAIError summary, QNetworkReply::NetworkError error_type, const QString &error_str);
+    void getmeGetSignalError(OAIUser summary, QNetworkReply::NetworkError error_type, const QString &error_str);
     void importPostSignalError(OAIListErrors summary, QNetworkReply::NetworkError error_type, const QString &error_str);
     void lessonsIdDeleteSignalError(QNetworkReply::NetworkError error_type, const QString &error_str);
     void lessonsIdGetSignalError(OAILesson summary, QNetworkReply::NetworkError error_type, const QString &error_str);
@@ -425,6 +433,7 @@ Q_SIGNALS:
 
     void errorsGetSignalErrorFull(OAIHttpRequestWorker *worker, QNetworkReply::NetworkError error_type, const QString &error_str);
     void errorsIdGetSignalErrorFull(OAIHttpRequestWorker *worker, QNetworkReply::NetworkError error_type, const QString &error_str);
+    void getmeGetSignalErrorFull(OAIHttpRequestWorker *worker, QNetworkReply::NetworkError error_type, const QString &error_str);
     void importPostSignalErrorFull(OAIHttpRequestWorker *worker, QNetworkReply::NetworkError error_type, const QString &error_str);
     void lessonsIdDeleteSignalErrorFull(OAIHttpRequestWorker *worker, QNetworkReply::NetworkError error_type, const QString &error_str);
     void lessonsIdGetSignalErrorFull(OAIHttpRequestWorker *worker, QNetworkReply::NetworkError error_type, const QString &error_str);

@@ -39,6 +39,8 @@ void OAIDefaultApi::initializeServerConfigs() {
     _serverIndices.insert("errorsGet", 0);
     _serverConfigs.insert("errorsIdGet", defaultConf);
     _serverIndices.insert("errorsIdGet", 0);
+    _serverConfigs.insert("getmeGet", defaultConf);
+    _serverIndices.insert("getmeGet", 0);
     _serverConfigs.insert("importPost", defaultConf);
     _serverIndices.insert("importPost", 0);
     _serverConfigs.insert("lessonsIdDelete", defaultConf);
@@ -412,6 +414,50 @@ void OAIDefaultApi::errorsIdGetCallback(OAIHttpRequestWorker *worker) {
     } else {
         Q_EMIT errorsIdGetSignalError(output, error_type, error_str);
         Q_EMIT errorsIdGetSignalErrorFull(worker, error_type, error_str);
+    }
+}
+
+void OAIDefaultApi::getmeGet() {
+    QString fullPath = QString(_serverConfigs["getmeGet"][_serverIndices.value("getmeGet")].URL()+"/getme");
+    
+    OAIHttpRequestWorker *worker = new OAIHttpRequestWorker(this, _manager);
+    worker->setTimeOut(_timeOut);
+    worker->setWorkingDirectory(_workingDirectory);
+    OAIHttpRequestInput input(fullPath, "GET");
+
+
+    for (auto keyValueIt = _defaultHeaders.keyValueBegin(); keyValueIt != _defaultHeaders.keyValueEnd(); keyValueIt++) {
+        input.headers.insert(keyValueIt->first, keyValueIt->second);
+    }
+
+
+    connect(worker, &OAIHttpRequestWorker::on_execution_finished, this, &OAIDefaultApi::getmeGetCallback);
+    connect(this, &OAIDefaultApi::abortRequestsSignal, worker, &QObject::deleteLater);
+    connect(worker, &QObject::destroyed, this, [this] {
+        if (findChildren<OAIHttpRequestWorker*>().count() == 0) {
+            Q_EMIT allPendingRequestsCompleted();
+        }
+    });
+
+    worker->execute(&input);
+}
+
+void OAIDefaultApi::getmeGetCallback(OAIHttpRequestWorker *worker) {
+    QString error_str = worker->error_str;
+    QNetworkReply::NetworkError error_type = worker->error_type;
+
+    if (worker->error_type != QNetworkReply::NoError) {
+        error_str = QString("%1, %2").arg(worker->error_str, QString(worker->response));
+    }
+    OAIUser output(QString(worker->response));
+    worker->deleteLater();
+
+    if (worker->error_type == QNetworkReply::NoError) {
+        Q_EMIT getmeGetSignal(output);
+        Q_EMIT getmeGetSignalFull(worker, output);
+    } else {
+        Q_EMIT getmeGetSignalError(output, error_type, error_str);
+        Q_EMIT getmeGetSignalErrorFull(worker, error_type, error_str);
     }
 }
 

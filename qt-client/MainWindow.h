@@ -30,10 +30,8 @@ class MainWindow : public QWidget {
 
     void set_view(QWidget *new_widget);
 
-    void setup_api_connections();
 
 private slots:
-    void login_dialog();
     void import_dialog();
 
 public:

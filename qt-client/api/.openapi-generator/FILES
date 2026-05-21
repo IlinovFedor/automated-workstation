@@ -45,4 +45,6 @@ client/OAITeacherLocationAssignment.cpp
 client/OAITeacherLocationAssignment.h
 client/OAITimetable.cpp
 client/OAITimetable.h
+client/OAIUser.cpp
+client/OAIUser.h
 client/client.pri

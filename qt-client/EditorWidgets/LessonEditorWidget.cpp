@@ -27,8 +27,17 @@ LessonEditorWidget::LessonEditorWidget(QWidget *parent, OpenAPI::OAIDefaultApi *
     category_combo->addItem("Лаб. занятие", "(лаб)");
     category_combo->addItem("КСР", "(кср)");
 
+    QList<QString> days_names;
+    days_names.resize(7);
+    days_names[0] = "Пн";
+    days_names[1] = "Вт";
+    days_names[2] = "Ср";
+    days_names[3] = "Чт";
+    days_names[4] = "Пт";
+    days_names[5] = "Сб";
+    days_names[6] = "Вс";
     for (int i = 1; i <= 7; i++) {
-        day_combo->addItem(QString::number(i), i);
+        day_combo->addItem(days_names[i - 1], i);
     }
 
     repeat_combo->addItem("Каждую неделю", 0);
@@ -235,8 +244,10 @@ void LessonEditorWidget::setup_connections() {
             "Удалить?",
             QMessageBox::Yes | QMessageBox::No
         );
-        if (reply == QMessageBox::Yes)
+        if (reply == QMessageBox::Yes) {
             emit LessonDeleteSignal(lesson);
+            submit_button->setDisabled(true);
+        }
     });
 }
 

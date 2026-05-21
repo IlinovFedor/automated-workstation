@@ -7,8 +7,12 @@
 #include <QDateTimeEdit>
 
 TimetablesEditorWidget::TimetablesEditorWidget(QWidget *parent, OpenAPI::OAIDefaultApi *new_api,
-                                           const OpenAPI::OAITimetable &new_timetable) : QWidget(parent) {
-    api = new_api;
+                                               const OpenAPI::OAITimetable &new_timetable) : QWidget(parent) {
+    api = new OpenAPI::OAIDefaultApi;
+    api->setParent(this);
+    api->setNewServerForAllOperations(QUrl(basePath));
+    api->addHeaders("Cookie", "apiKey=" + apiKey);
+
     timetable = new_timetable;
 
     id_label = new QLabel(QString::number(timetable.getId()), this);
@@ -24,6 +28,7 @@ TimetablesEditorWidget::TimetablesEditorWidget(QWidget *parent, OpenAPI::OAIDefa
     parity_combo->setCurrentIndex(timetable.getWeek() - 1);
 
     submit_button = new QPushButton("Сохранить", this);
+    submit_button->setDisabled(true);
     remove_button = new QPushButton("Удалить", this);
     horizontal_layout = new QHBoxLayout(this);
 
@@ -42,11 +47,21 @@ TimetablesEditorWidget::TimetablesEditorWidget(QWidget *parent, OpenAPI::OAIDefa
 void TimetablesEditorWidget::setup_connections() {
     connect(name_line_edit, &QLineEdit::textEdited, this, [this]() {
         timetable.setName(name_line_edit->text());
+        submit_button->setDisabled(false);
     });
 
     connect(submit_button, &QPushButton::clicked, this, [this]() {
         api->timetablesIdPatch(timetable.getId(), timetable);
+        submit_button->setDisabled(true);
     });
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesIdPatchSignal, this, [this]() {
+        submit_button->setDisabled(true);
+    });
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesIdPatchSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
+
     connect(remove_button, &QPushButton::clicked, this, [this]() {
         auto reply = QMessageBox::question(
             this,
@@ -54,11 +69,16 @@ void TimetablesEditorWidget::setup_connections() {
             "Удалить?",
             QMessageBox::Yes | QMessageBox::No
         );
-        if (reply == QMessageBox::Yes) {
+        if (reply == QMessageBox::Yes)
             api->timetablesIdDelete(timetable.getId());
-            deleteLater();
-        }
     });
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesIdDeleteSignal, this, [this]() {
+        deleteLater();
+    });
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesIdDeleteSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 
     connect(start_date_button, &QPushButton::clicked, this, [this]() {
         QDialog dialog(this);
@@ -74,6 +94,7 @@ void TimetablesEditorWidget::setup_connections() {
         if (dialog.exec() == QDialog::Accepted) {
             timetable.setDateStart(date_edit->dateTime().toUTC());
             start_date_button->setText(date_edit->dateTime().toLocalTime().toString());
+            submit_button->setDisabled(false);
         }
     });
 
@@ -91,10 +112,12 @@ void TimetablesEditorWidget::setup_connections() {
         if (dialog.exec() == QDialog::Accepted) {
             timetable.setDateEnd(date_edit->dateTime().toUTC());
             end_date_button->setText(date_edit->dateTime().toLocalTime().toString());
+            submit_button->setDisabled(false);
         }
     });
 
     connect(parity_combo, &QComboBox::currentIndexChanged, this, [this](int idx) {
-       timetable.setWeek(parity_combo->itemData(idx).toInt());
+        timetable.setWeek(parity_combo->itemData(idx).toInt());
+        submit_button->setDisabled(false);
     });
 }

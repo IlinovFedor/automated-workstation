@@ -7,7 +7,10 @@
 
 TeachersEditorWidget::TeachersEditorWidget(QWidget *parent, OpenAPI::OAIDefaultApi *new_api,
                                            const OpenAPI::OAITeacher &new_teacher) : QWidget(parent) {
-    api = new_api;
+    api = new OpenAPI::OAIDefaultApi;
+    api->setParent(this);
+    api->setNewServerForAllOperations(QUrl(basePath));
+    api->addHeaders("Cookie", "apiKey=" + apiKey);
     teacher = new_teacher;
 
     id_label = new QLabel(QString::number(teacher.getId()), this);
@@ -16,6 +19,7 @@ TeachersEditorWidget::TeachersEditorWidget(QWidget *parent, OpenAPI::OAIDefaultA
 
     name_line_edit = new QLineEdit(teacher.getName(), this);
     submit_button = new QPushButton("Сохранить", this);
+    submit_button->setDisabled(true);
     remove_button = new QPushButton("Удалить", this);
     horizontal_layout = new QHBoxLayout(this);
 
@@ -30,11 +34,21 @@ TeachersEditorWidget::TeachersEditorWidget(QWidget *parent, OpenAPI::OAIDefaultA
 void TeachersEditorWidget::setup_connections() {
     connect(name_line_edit, &QLineEdit::textEdited, this, [this]() {
         teacher.setName(name_line_edit->text());
+        submit_button->setDisabled(false);
     });
 
     connect(submit_button, &QPushButton::clicked, this, [this]() {
         api->teachersIdPatch(teacher.getId(), teacher);
+        submit_button->setDisabled(true);
     });
+
+    connect(api, &OpenAPI::OAIDefaultApi::teachersIdPatchSignal, this, [this]() {
+        submit_button->setDisabled(true);
+    });
+    connect(api, &OpenAPI::OAIDefaultApi::teachersIdPatchSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 
     connect(remove_button, &QPushButton::clicked, this, [this]() {
         auto reply = QMessageBox::question(
@@ -43,9 +57,14 @@ void TeachersEditorWidget::setup_connections() {
             "Удалить?",
             QMessageBox::Yes | QMessageBox::No
         );
-        if (reply == QMessageBox::Yes) {
+        if (reply == QMessageBox::Yes)
             api->teachersIdDelete(teacher.getId());
-            deleteLater();
-        }
     });
+    connect(api, &OpenAPI::OAIDefaultApi::teachersIdDeleteSignal, this, [this]() {
+        deleteLater();
+    });
+    connect(api, &OpenAPI::OAIDefaultApi::teachersIdDeleteSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 }

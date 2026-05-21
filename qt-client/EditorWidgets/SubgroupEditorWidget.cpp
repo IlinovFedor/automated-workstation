@@ -7,7 +7,10 @@
 
 SubgroupEditorWidget::SubgroupEditorWidget(QWidget *parent, OpenAPI::OAIDefaultApi *new_api,
                                            const OpenAPI::OAISubgroup &new_subgroup) : QWidget(parent) {
-    api = new_api;
+    api = new OpenAPI::OAIDefaultApi;
+    api->setParent(this);
+    api->setNewServerForAllOperations(QUrl(basePath));
+    api->addHeaders("Cookie", "apiKey=" + apiKey);
     subgroup = new_subgroup;
 
     id_label = new QLabel(QString::number(subgroup.getId()), this);
@@ -16,6 +19,7 @@ SubgroupEditorWidget::SubgroupEditorWidget(QWidget *parent, OpenAPI::OAIDefaultA
 
     name_line_edit = new QLineEdit(subgroup.getName(), this);
     submit_button = new QPushButton("Сохранить", this);
+    submit_button->setDisabled(true);
     remove_button = new QPushButton("Удалить", this);
     horizontal_layout = new QHBoxLayout(this);
 
@@ -30,11 +34,20 @@ SubgroupEditorWidget::SubgroupEditorWidget(QWidget *parent, OpenAPI::OAIDefaultA
 void SubgroupEditorWidget::setup_connections() {
     connect(name_line_edit, &QLineEdit::textEdited, this, [this]() {
         subgroup.setName(name_line_edit->text());
+        submit_button->setDisabled(false);
     });
 
     connect(submit_button, &QPushButton::clicked, this, [this]() {
         api->subgroupsIdPatch(subgroup.getId(), subgroup);
+        submit_button->setDisabled(true);
     });
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsIdPatchSignal, this, [this]() {
+        submit_button->setDisabled(true);
+    });
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsIdPatchSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 
     connect(remove_button, &QPushButton::clicked, this, [this]() {
         auto reply = QMessageBox::question(
@@ -43,9 +56,15 @@ void SubgroupEditorWidget::setup_connections() {
             "Удалить?",
             QMessageBox::Yes | QMessageBox::No
         );
-        if (reply == QMessageBox::Yes) {
+        if (reply == QMessageBox::Yes)
             api->subgroupsIdDelete(subgroup.getId());
-            deleteLater();
-        }
     });
+
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsIdDeleteSignal, this, [this]() {
+        deleteLater();
+    });
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsIdDeleteSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 }

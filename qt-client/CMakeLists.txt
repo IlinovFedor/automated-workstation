@@ -41,7 +41,11 @@ add_executable(qt_client main.cpp
         EditorWidgets/SearchComboWidget.cpp
         EditorWidgets/SearchComboWidget.h
         EditorWidgets/LessonEditorWidget.cpp
-        EditorWidgets/LessonEditorWidget.h)
+        EditorWidgets/LessonEditorWidget.h
+        LoginWidget.cpp
+        LoginWidget.h
+        ErrorWidget.cpp
+        ErrorWidget.h)
 
 target_link_libraries(qt_client
         Qt::Core
@@ -50,5 +54,5 @@ target_link_libraries(qt_client
         QtOpenAPIClient
 )
 
-target_compile_options(qt_client PRIVATE -fsanitize=address)
-target_link_options(qt_client PRIVATE -fsanitize=address)
+#target_compile_options(qt_client PRIVATE -fsanitize=address)
+#target_link_options(qt_client PRIVATE -fsanitize=address)

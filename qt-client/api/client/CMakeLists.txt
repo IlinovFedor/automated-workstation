@@ -26,6 +26,7 @@ add_library(${PROJECT_NAME}
   OAITeacher.h
   OAITeacherLocationAssignment.h
   OAITimetable.h
+  OAIUser.h
   OAIDefaultApi.h
   OAIHelpers.h
   OAIHttpRequest.h
@@ -50,6 +51,7 @@ add_library(${PROJECT_NAME}
   OAITeacher.cpp
   OAITeacherLocationAssignment.cpp
   OAITimetable.cpp
+  OAIUser.cpp
   OAIDefaultApi.cpp
   OAIHelpers.cpp
   OAIHttpRequest.cpp

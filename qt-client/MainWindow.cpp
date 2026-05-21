@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QMessageBox>
 
+#include "LoginWidget.h"
 #include "OAIDefaultApi.h"
 #include "OAIHttpRequest.h"
 #include "PaginationWidget.h"
@@ -19,7 +20,6 @@ MainWindow::MainWindow() {
     api = new OpenAPI::OAIDefaultApi;
     api->setParent(this);
     api->setNewServerForAllOperations(QUrl(basePath));
-    // api->addHeaders("Cookie", "apiKey=admin");
 
     horizontal_layout = new QHBoxLayout(this);
 
@@ -75,9 +75,9 @@ MainWindow::MainWindow() {
     });
 
     connect(import_button, &QPushButton::clicked, this, &MainWindow::import_dialog);
-    connect(dispatcher_button, &QPushButton::clicked, this, &MainWindow::login_dialog);
-
-    setup_api_connections();
+    connect(dispatcher_button, &QPushButton::clicked, this, [this]() {
+        set_view(new LoginWidget(this));
+    });
 }
 
 void MainWindow::set_view(QWidget *new_widget) {
@@ -89,34 +89,12 @@ void MainWindow::set_view(QWidget *new_widget) {
     horizontal_layout->addWidget(current_widget, 1);
 }
 
-void MainWindow::login_dialog() {
-    QDialog dialog(this);
-    dialog.setWindowTitle("Авторизация");
-    auto layout = new QVBoxLayout(&dialog);
-    auto key_edit = new QLineEdit(&dialog);
-    key_edit->setPlaceholderText("API Key");
-    auto buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-    layout->addWidget(key_edit);
-    layout->addWidget(buttons);
-    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    if (dialog.exec() == QDialog::Accepted) {
-        horizontal_layout->removeWidget(current_widget);
-        delete current_widget;
-
-        delete api;
-        api = new OpenAPI::OAIDefaultApi;
-        api->setParent(this);
-        api->setNewServerForAllOperations(QUrl(basePath));
-        api->addHeaders("Cookie", "apiKey=" + key_edit->text());
-        setup_api_connections();
-
-        current_widget = new TimetableRenderer(this, api);
-        horizontal_layout->addWidget(current_widget, 1);
-    }
-}
-
 void MainWindow::import_dialog() {
+    auto import_api = new OpenAPI::OAIDefaultApi;
+    import_api->setParent(this);
+    import_api->setNewServerForAllOperations(QUrl(basePath));
+    import_api->addHeaders("Cookie", "apiKey=" + apiKey);
+
     QString file_path = QFileDialog::getOpenFileName(this, "Импорт", QString(), "ZIP (*.zip)");
     if (file_path.isEmpty()) {
         return;
@@ -129,20 +107,14 @@ void MainWindow::import_dialog() {
     file.setRequestFileName(file_info.fileName());
     file.setMimeType("application/zip");
 
-    api->importPost(file);
-}
-
-void MainWindow::setup_api_connections() {
-    connect(api, &OpenAPI::OAIDefaultApi::importPostSignal, this, [this](const OpenAPI::OAIListErrors &summary) {
-        Q_UNUSED(summary);
+    import_api->importPost(file);
+    connect(import_api, &OpenAPI::OAIDefaultApi::importPostSignal, this, [this](const OpenAPI::OAIListErrors &summary) {
         QMessageBox::information(this, "Импорт", "Импорт завершен");
         set_view(new TimetableRenderer(this, api));
     });
 
-    connect(api, &OpenAPI::OAIDefaultApi::importPostSignalError, this,
-            [this](const OpenAPI::OAIListErrors &summary, QNetworkReply::NetworkError error_type, const QString &error_str) {
-        Q_UNUSED(summary);
-        Q_UNUSED(error_type);
-        QMessageBox::warning(this, "Импорт", error_str.isEmpty() ? "Ошибка импорта" : error_str);
-    });
+    connect(import_api, &OpenAPI::OAIDefaultApi::importPostSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 }

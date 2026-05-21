@@ -12,6 +12,7 @@
 
 #include "OAIDefaultApi.h"
 #include "api/BasePath.h"
+#include "ErrorWidget.h"
 
 
 class PaginationWidget : public QWidget {

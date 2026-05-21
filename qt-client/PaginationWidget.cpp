@@ -6,6 +6,7 @@
 
 #include <QLabel>
 
+#include "ErrorWidget.h"
 #include "EditorWidgets/LocationsEditorWidget.h"
 #include "EditorWidgets/SubgroupEditorWidget.h"
 #include "EditorWidgets/SubjectsEditorWidget.h"
@@ -38,32 +39,76 @@ void PaginationWidget::setup_connections() {
     connect(api, &OpenAPI::OAIDefaultApi::subgroupsPostSignal, this, [this](OpenAPI::OAISubgroup summary) {
         items_layout->addWidget(new SubgroupEditorWidget(this, api, summary));
     });
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsGetSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
+    connect(api, &OpenAPI::OAIDefaultApi::subgroupsPostSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 
     connect(api, &OpenAPI::OAIDefaultApi::teachersGetSignal, this, &PaginationWidget::show_teachers);
     connect(api, &OpenAPI::OAIDefaultApi::teachersPostSignal, this, [this](OpenAPI::OAITeacher summary) {
         items_layout->addWidget(new TeachersEditorWidget(this, api, summary));
     });
+    connect(api, &OpenAPI::OAIDefaultApi::teachersGetSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
+    connect(api, &OpenAPI::OAIDefaultApi::teachersPostSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 
     connect(api, &OpenAPI::OAIDefaultApi::locationsGetSignal, this, &PaginationWidget::show_locations);
     connect(api, &OpenAPI::OAIDefaultApi::locationsPostSignal, this, [this](OpenAPI::OAILocation summary) {
         items_layout->addWidget(new LocationsEditorWidget(this, api, summary));
     });
-
+    connect(api, &OpenAPI::OAIDefaultApi::locationsGetSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
+    connect(api, &OpenAPI::OAIDefaultApi::locationsPostSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
     connect(api, &OpenAPI::OAIDefaultApi::subjectsGetSignal, this, &PaginationWidget::show_subjects);
     connect(api, &OpenAPI::OAIDefaultApi::subjectsPostSignal, this, [this](OpenAPI::OAISubject summary) {
         items_layout->addWidget(new SubjectsEditorWidget(this, api, summary));
     });
+    connect(api, &OpenAPI::OAIDefaultApi::subjectsGetSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
+    connect(api, &OpenAPI::OAIDefaultApi::subjectsPostSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 
     connect(api, &OpenAPI::OAIDefaultApi::timetablesGetSignal, this, &PaginationWidget::show_timetables);
     connect(api, &OpenAPI::OAIDefaultApi::timetablesPostSignal, this, [this](OpenAPI::OAITimetable summary) {
         items_layout->addWidget(new TimetablesEditorWidget(this, api, summary));
     });
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesGetSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
+    connect(api, &OpenAPI::OAIDefaultApi::timetablesPostSignalErrorFull, this,
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                ErrorWidget(_t1, _t2, _t3, this);
+            });
 }
 
 PaginationWidget::PaginationWidget(QWidget *parent, SearchMode new_mode, OpenAPI::OAIDefaultApi *new_api)
     : QWidget(parent) {
     mode = new_mode;
-    api = new_api;
+
+    api = new OpenAPI::OAIDefaultApi;
+    api->setParent(this);
+    api->setNewServerForAllOperations(QUrl(basePath));
+    api->addHeaders("Cookie", "apiKey=" + apiKey);
+
     page = 1;
     total_pages = 1;
 
@@ -117,6 +162,7 @@ void PaginationWidget::show_subgroups(OpenAPI::OAIListSubgroups summary) {
     prev_page_button->setEnabled(page > 1);
     next_page_button->setEnabled(page < total_pages);
 }
+
 void PaginationWidget::show_teachers(OpenAPI::OAIListTeachers summary) {
     while (QLayoutItem *item = items_layout->takeAt(0)) {
         delete item->widget();

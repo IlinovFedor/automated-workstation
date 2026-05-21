@@ -12,6 +12,7 @@
 #include <QWidgetAction>
 #include <QCompleter>
 #include <QDialog>
+#include "../../ErrorWidget.h"
 
 TimetableRenderer::TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *new_api) : QWidget(parent) {
     api = new OpenAPI::OAIDefaultApi();
@@ -92,27 +93,47 @@ void TimetableRenderer::setup_connections() {
     });
 
     connect(painter, &TimetablePainter::lessonClicked, this, [this](const OpenAPI::OAILesson &lesson) {
+        auto lesson_api = new OpenAPI::OAIDefaultApi();
+        lesson_api->setParent(this);
+        lesson_api->setNewServerForAllOperations(basePath);
+        lesson_api->addHeaders("Cookie", "apiKey=" + apiKey);
+
         QDialog dialog(this);
         dialog.setWindowTitle("Редактирование урока");
         auto layout = new QVBoxLayout(&dialog);
-        auto editor = new LessonEditorWidget(&dialog, api, lesson);
+        auto editor = new LessonEditorWidget(&dialog, lesson_api, lesson);
+
         connect(editor, &LessonEditorWidget::LessonDataEditedSignal, this,
-                [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+                [this, &lesson, &lesson_api](OpenAPI::OAILesson new_lesson_data) {
+                    lesson_api->lessonsIdPatch(new_lesson_data.getId(), new_lesson_data);
+                });
+        connect(lesson_api, &OpenAPI::OAIDefaultApi::lessonsIdPatchSignal, this,
+                [this](OpenAPI::OAILesson new_lesson_data) {
                     for (int i = 0; i < raw_lessons.size(); i++)
-                        if (raw_lessons[i].getId() == new_lesson_data.getId()) {
+                        if (raw_lessons[i].getId() == new_lesson_data.getId())
                             raw_lessons[i] = new_lesson_data;
-                            api->lessonsIdPatch(lesson.getId(), new_lesson_data);
-                        }
                     update_painter();
                 });
+        connect(lesson_api, &OpenAPI::OAIDefaultApi::lessonsIdPatchSignalErrorFull, this,
+                [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                    ErrorWidget(_t1, _t2, _t3, this);
+                });
+
         connect(editor, &LessonEditorWidget::LessonDeleteSignal, this,
-                [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+                [this, &lesson, &lesson_api](OpenAPI::OAILesson new_lesson_data) {
+                    lesson_api->lessonsIdDelete(new_lesson_data.getId());
+                });
+
+        connect(lesson_api, &OpenAPI::OAIDefaultApi::lessonsIdDeleteSignal, this,
+                [this, lesson]() {
                     for (int i = 0; i < raw_lessons.size(); i++)
-                        if (raw_lessons[i].getId() == new_lesson_data.getId()) {
+                        if (raw_lessons[i].getId() == lesson.getId())
                             raw_lessons.remove(i);
-                            api->lessonsIdDelete(new_lesson_data.getId());
-                        }
                     update_painter();
+                });
+        connect(lesson_api, &OpenAPI::OAIDefaultApi::lessonsIdDeleteSignalErrorFull, this,
+                [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                    ErrorWidget(_t1, _t2, _t3, this);
                 });
         layout->addWidget(editor);
         dialog.exec();
@@ -140,7 +161,11 @@ void TimetableRenderer::setup_connections() {
     });
 
     connect(new_lesson_button, &QPushButton::clicked, this, [this]() {
-        QDialog dialog(this);
+        auto lesson_api = new OpenAPI::OAIDefaultApi();
+        lesson_api->setParent(this);
+        lesson_api->setNewServerForAllOperations(basePath);
+        lesson_api->addHeaders("Cookie", "apiKey=" + apiKey);
+
         OpenAPI::OAILesson lesson;
         lesson.setCategory("(лек)");
         lesson.setDay(1);
@@ -149,40 +174,33 @@ void TimetableRenderer::setup_connections() {
             lesson.setTimetable(raw_lessons[0].getTimetable());
         lesson.setTimeStart(480);
         lesson.setTimeEnd(570);
-        std::map<int, int> mp;
-        for (auto raw_lesson: raw_lessons)
-            for (auto subgroup: raw_lesson.getSubgroups())
-                mp[subgroup.getId()]++;
-
-        OpenAPI::OAISubgroup best;
-        int best_count = 0;
-
-        for (auto &raw_lesson: raw_lessons) {
-            for (auto &subgroup: raw_lesson.getSubgroups()) {
-                int id = subgroup.getId();
-                int count = mp[id];
-
-                if (count > best_count) {
-                    best_count = count;
-                    best = subgroup;
-                }
-            }
-        }
-
+        OpenAPI::OAISubgroup subgroup;
+        subgroup.setId(search_combo->currentId());
+        subgroup.setName(search_combo->currentName());
         auto tmp = lesson.getSubgroups();
-        tmp.push_back(best);
+        if (subgroup.getId() > 0)
+            tmp.push_back(subgroup);
         lesson.setSubgroups(tmp);
 
+        QDialog dialog(this);
         dialog.setWindowTitle("Создание");
         auto layout = new QVBoxLayout(&dialog);
-        auto editor = new LessonEditorWidget(&dialog, api, lesson);
+        auto editor = new LessonEditorWidget(&dialog, lesson_api, lesson);
         connect(editor, &LessonEditorWidget::LessonDataEditedSignal, this,
-                [this, lesson](OpenAPI::OAILesson new_lesson_data) {
+                [this, &lesson, &lesson_api](OpenAPI::OAILesson new_lesson_data) {
                     new_lesson_data.setId("00000000-0000-0000-0000-000000000000");
-                    api->lessonsPost(new_lesson_data);
-                    raw_lessons.push_back(new_lesson_data);
+                    lesson_api->lessonsPost(new_lesson_data);
+                });
+        connect(lesson_api, &OpenAPI::OAIDefaultApi::lessonsPostSignal, this,
+                [this](OpenAPI::OAILesson recieved_lesson) {
+                    raw_lessons.push_back(recieved_lesson);
                     update_painter();
                 });
+        connect(lesson_api, &OpenAPI::OAIDefaultApi::lessonsPostSignalErrorFull, this,
+                [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
+                    ErrorWidget(_t1, _t2, _t3, this);
+                });
+
         layout->addWidget(editor);
         dialog.exec();
     });

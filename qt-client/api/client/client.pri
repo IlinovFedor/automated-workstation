@@ -17,6 +17,7 @@ HEADERS += \
     $${PWD}/OAITeacher.h \
     $${PWD}/OAITeacherLocationAssignment.h \
     $${PWD}/OAITimetable.h \
+    $${PWD}/OAIUser.h \
 # APIs
     $${PWD}/OAIDefaultApi.h \
 # Others
@@ -46,6 +47,7 @@ SOURCES += \
     $${PWD}/OAITeacher.cpp \
     $${PWD}/OAITeacherLocationAssignment.cpp \
     $${PWD}/OAITimetable.cpp \
+    $${PWD}/OAIUser.cpp \
 # APIs
     $${PWD}/OAIDefaultApi.cpp \
 # Others
