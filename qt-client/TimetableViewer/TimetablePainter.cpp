@@ -75,6 +75,7 @@ void TimetablePainter::refresh() {
         }
     }
     scene->clear();
+    view->viewport()->update();
     draw_day_highlight();
     draw_days();
     draw_hours();

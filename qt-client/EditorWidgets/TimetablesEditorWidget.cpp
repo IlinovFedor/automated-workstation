@@ -34,9 +34,9 @@ TimetablesEditorWidget::TimetablesEditorWidget(QWidget *parent, OpenAPI::OAIDefa
 
     horizontal_layout->addWidget(id_label);
     horizontal_layout->addWidget(name_line_edit);
+    horizontal_layout->addWidget(parity_combo);
     horizontal_layout->addWidget(start_date_button);
     horizontal_layout->addWidget(end_date_button);
-    horizontal_layout->addWidget(parity_combo);
 
     horizontal_layout->addWidget(submit_button);
     horizontal_layout->addWidget(remove_button);

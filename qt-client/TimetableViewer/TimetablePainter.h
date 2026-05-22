@@ -19,10 +19,10 @@ class TimetablePainter : public QWidget {
     QVBoxLayout *layout;
 
     bool is_cur_date_active = false;
-    QDate selected_date;
+    QDate selected_date = QDate::currentDate();
 
     QList<OpenAPI::OAILesson> lessons;
-    QDate week_date;
+    QDate week_date = QDate::currentDate();
 
     void draw_days();
 

@@ -11,7 +11,8 @@
 #include "api/BasePath.h"
 
 LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
-    dispatcher_key_line_edit = new QLineEdit("Введите код диспетчера", this);
+    dispatcher_key_line_edit = new QLineEdit(this);
+    dispatcher_key_line_edit->setPlaceholderText("Введите код диспетчера");
     QString status_string = "";
     if (user_role == RoleUnauthorized)
         status_string = "Не авторизован";
@@ -38,6 +39,11 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
         apiKey = dispatcher_key_line_edit->text();
         api->getmeGet();
     });
+    connect(dispatcher_key_line_edit, &QLineEdit::returnPressed, this, [this]() {
+        api->addHeaders("Cookie", "apiKey=" + dispatcher_key_line_edit->text());
+        apiKey = dispatcher_key_line_edit->text();
+        api->getmeGet();
+    });
 
     connect(api, &OpenAPI::OAIDefaultApi::getmeGetSignal, this, [this](OpenAPI::OAIUser user) {
         user_role = user.getRole();
@@ -52,9 +58,9 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
     });
 
     connect(api, &OpenAPI::OAIDefaultApi::getmeGetSignalErrorFull, this,
-            [this](OpenAPI::OAIHttpRequestWorker * _t1, QNetworkReply::NetworkError _t2, const QString & _t3) {
+            [this](OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3) {
                 auto err = new ErrorWidget(_t1, _t2, _t3, this);
-    });
+            });
 
     connect(logout_button, &QPushButton::clicked, this, [this]() {
         api->addHeaders("Cookie", "");
