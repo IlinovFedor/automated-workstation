@@ -12,6 +12,8 @@
 #include <QWidgetAction>
 #include <QCompleter>
 #include <QDialog>
+#include <qdialogbuttonbox.h>
+
 #include "../../ErrorWidget.h"
 
 TimetableRenderer::TimetableRenderer(QWidget *parent, OpenAPI::OAIDefaultApi *new_api) : QWidget(parent) {
@@ -158,6 +160,16 @@ void TimetableRenderer::setup_connections() {
 
     connect(ics_export_button, &QPushButton::clicked, this, [this]() {
         clipboard->setText(ics_url);
+        QDialog dialog(this);
+        auto layout = new QVBoxLayout(&dialog);
+        dialog.setLayout(layout);
+        auto text = new QLabel("Ссылка скопирована в буфер обмена", &dialog);
+        layout->addWidget(text);
+        auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
+        layout->addWidget(buttonBox);
+        connect(buttonBox, &QDialogButtonBox::clicked, &dialog, &QDialog::accept);
+        if (dialog.exec() == QDialog::Accepted)
+            dialog.close();
     });
 
     connect(new_lesson_button, &QPushButton::clicked, this, [this]() {
