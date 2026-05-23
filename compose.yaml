@@ -1,0 +1,81 @@
+services:
+  oapi-gens:
+    image: openapitools/openapi-generator-cli:latest
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      set -e
+      && go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.2.0
+      && oapi-codegen --config /workspace/openapi/go-config.yaml /workspace/openapi/openapi.yaml
+      && openapi-generator-cli generate -i /workspace/openapi/openapi.yaml -g cpp-qt-client -o /workspace/qt-client/api
+
+  postgres:
+    env_file:
+      - .env
+    image: postgres:16-alpine
+    restart: unless-stopped
+    user: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    expose:
+      - 5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrations:
+    env_file:
+      - .env
+    build:
+      context: timetables
+      target: migrate-builder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c 'goose -dir /src/migrations postgres
+      "postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@$$POSTGRES_HOST:$$POSTGRES_PORT/$$POSTGRES_DB?sslmode=disable" up'
+
+  backend:
+    env_file:
+      - .env
+    build:
+      context: timetables
+      target: final
+    expose:
+      - 8466
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend-build:
+    build:
+      context: frontend
+    volumes:
+      - frontend-dist:/dist
+    restart: "no"
+
+  nginx:
+    env_file:
+      - .env
+    build:
+      context: nginx
+    ports:
+      - "8470:8470"
+    volumes:
+      - frontend-dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+      - frontend-build
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  frontend-dist:

@@ -9,12 +9,9 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+FROM alpine:3.19
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
+COPY --from=builder /app/dist /app/dist
 
-EXPOSE 8470
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["sh", "-c", "mkdir -p /dist && cp -r /app/dist/. /dist"]

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>styles/app.qss</file>
+        <file>styles/Roboto/Roboto-VariableFont_wdth,wght.ttf</file>
+        <file>styles/Roboto/Roboto-Italic-VariableFont_wdth,wght.ttf</file>
+        <file>styles/ui_lesson.qss</file>
+    </qresource>
+</RCC>
