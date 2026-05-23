@@ -14,7 +14,7 @@
 #include "OAIDefaultApi.h"
 #include "OAIHttpRequest.h"
 #include "PaginationWidget.h"
-#include "api/BasePath.h"
+#include "api/api-consts.h"
 
 MainWindow::MainWindow() {
     api = new OpenAPI::OAIDefaultApi;

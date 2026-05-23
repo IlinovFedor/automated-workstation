@@ -1,0 +1,3 @@
+inputSpec: /workspace/openapi/openapi.yaml
+outputDir: /workspace/qt-client/api
+generatorName: cpp-qt-client

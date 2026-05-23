@@ -9,7 +9,7 @@
 #include <QVBoxLayout>
 
 #include "OAIError.h"
-#include "api/BasePath.h"
+#include "api/api-consts.h"
 #include "api/client/OAIHttpRequest.h"
 
 ErrorWidget::ErrorWidget(OpenAPI::OAIHttpRequestWorker *_t1, QNetworkReply::NetworkError _t2, const QString &_t3, QWidget* parent) : QDialog(parent){

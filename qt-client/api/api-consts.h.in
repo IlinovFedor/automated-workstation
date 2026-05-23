@@ -2,7 +2,7 @@
 #define QT_CLIENT_APICONSTS_H
 
 #include <QString>
-const QString basePath = "http://localhost:8466";
+const QString basePath = "@API_BASE_URL@";
 const QString RoleUnauthorized = "unauthorized";
 const QString RoleUser = "user";
 const QString RoleAdmin = "admin";
@@ -10,6 +10,7 @@ const QString RoleAdmin = "admin";
 inline QString user_role = RoleUnauthorized;
 
 inline QString apiKey = "";
+
 
 const QMap<QString, QString> ApiErrors = {
     {"CODE_BAD_REQUEST", "Неверный запрос. Обратитесь к системному администратору."},

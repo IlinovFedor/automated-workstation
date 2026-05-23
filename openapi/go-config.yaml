@@ -1,5 +1,5 @@
 package: api
-output: backend/internal/api/server.go
+output: internal/api/server.go
 generate:
   std-http-server: true
   strict-server: true

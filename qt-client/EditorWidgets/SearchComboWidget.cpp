@@ -3,7 +3,7 @@
 //
 
 #include "SearchComboWidget.h"
-#include "../api/BasePath.h"
+#include "../api/api-consts.h"
 #include <QHBoxLayout>
 
 SearchComboWidget::SearchComboWidget(QWidget *parent, SearchMode new_mode)

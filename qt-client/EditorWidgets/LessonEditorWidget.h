@@ -13,7 +13,7 @@
 #include <QVBoxLayout>
 #include <QScrollArea>
 
-#include "../api/BasePath.h"
+#include "../api/api-consts.h"
 #include "OAIDefaultApi.h"
 #include "OAILesson.h"
 #include "OAITeacherLocationAssignment.h"

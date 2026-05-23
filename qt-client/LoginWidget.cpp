@@ -8,7 +8,7 @@
 #include <qdialogbuttonbox.h>
 
 #include "ErrorWidget.h"
-#include "api/BasePath.h"
+#include "api/api-consts.h"
 
 LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
     dispatcher_key_line_edit = new QLineEdit(this);

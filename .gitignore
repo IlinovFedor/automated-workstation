@@ -1,1 +1,5 @@
 .idea
+qt-client/api/api-consts.h
+qt-client/api/README.md
+qt-client/api/.openapi-generator/
+qt-client/api/.openapi-generator-ignore

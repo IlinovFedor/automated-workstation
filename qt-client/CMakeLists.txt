@@ -54,5 +54,14 @@ target_link_libraries(qt_client
         QtOpenAPIClient
 )
 
+set(API_BASE_URL "http://localhost:8080/api" CACHE STRING "API base URL")
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/api/api-consts.h.in
+    ${CMAKE_SOURCE_DIR}/api/api-consts.h
+)
+
+target_include_directories(qt_client PRIVATE ${CMAKE_BINARY_DIR})
+
 #target_compile_options(qt_client PRIVATE -fsanitize=address)
 #target_link_options(qt_client PRIVATE -fsanitize=address)

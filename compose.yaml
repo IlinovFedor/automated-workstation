@@ -1,15 +1,27 @@
 services:
-  oapi-gens:
+  oapi-gen-go:
+    image: golang:1.25.4-alpine
+    working_dir: /workspace/backend
+    volumes:
+      - .:/workspace
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache git &&
+        go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.2.0 &&
+        oapi-codegen --config /workspace/openapi/go-config.yaml /workspace/openapi/openapi.yaml
+        chown ${CURRENT_UID}:${CURRENT_GID} /workspace/backend/internal/api/server.go
+    profiles: ["codegen"]
+
+  oapi-gen-cpp:
+    user: "${CURRENT_UID}:${CURRENT_GID}"
     image: openapitools/openapi-generator-cli:latest
     working_dir: /workspace
     volumes:
       - .:/workspace
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      set -e
-      && go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.2.0
-      && oapi-codegen --config /workspace/openapi/go-config.yaml /workspace/openapi/openapi.yaml
-      && openapi-generator-cli generate -i /workspace/openapi/openapi.yaml -g cpp-qt-client -o /workspace/qt-client/api
+    command: generate -c /workspace/openapi/cpp-config.yaml
+    profiles: ["codegen"]
 
   postgres:
     env_file:
@@ -20,7 +32,7 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     expose:
-      - 5432
+      - ${POSTGRES_PORT}
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
@@ -31,7 +43,7 @@ services:
     env_file:
       - .env
     build:
-      context: timetables
+      context: backend
       target: migrate-builder
     depends_on:
       postgres:
@@ -44,10 +56,10 @@ services:
     env_file:
       - .env
     build:
-      context: timetables
+      context: backend
       target: final
     expose:
-      - 8466
+      - ${BACKEND_PORT}
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,14 +75,16 @@ services:
     restart: "no"
 
   nginx:
+    image: nginx:alpine
     env_file:
       - .env
-    build:
-      context: nginx
     ports:
-      - "8470:8470"
+      - "${NGINX_PORT}:${NGINX_PORT}"
     volumes:
       - frontend-dist:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template
+    environment:
+      - NGINX_ENVSUBST_TEMPLATE_VARS=NGINX_PORT,BACKEND_PORT
     depends_on:
       - backend
       - frontend-build

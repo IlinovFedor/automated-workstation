@@ -11,7 +11,7 @@
 #include <QComboBox>
 
 #include "OAIDefaultApi.h"
-#include "api/BasePath.h"
+#include "api/api-consts.h"
 #include "ErrorWidget.h"
 
 

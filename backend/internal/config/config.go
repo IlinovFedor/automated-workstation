@@ -47,10 +47,11 @@ func NewConfig() (*Config, error) {
 	}
 	connUrl := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=%s", pgUser, pgPasswd, pgHost, pgPort, pgDB, "disable")
 
-	addr, ok := os.LookupEnv("HTTP_ADDRESS")
+	port, ok := os.LookupEnv("BACKEND_PORT")
 	if !ok {
-		return nil, errors.New("cannot find HTTP_ADDRESS ev")
+		return nil, errors.New("cannot find BACKEND_PORT ev")
 	}
+	addr := ":" + port
 	adminCookie, ok := os.LookupEnv("ADMIN_COOKIE")
 	if !ok {
 		return nil, errors.New("cannot find ADMIN_COOKIE ev")

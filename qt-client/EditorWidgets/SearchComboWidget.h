@@ -11,7 +11,7 @@
 #include <QVariant>
 #include <QWidget>
 
-#include "../api/BasePath.h"
+#include "../api/api-consts.h"
 #include "OAIDefaultApi.h"
 
 class SearchComboWidget : public QWidget {

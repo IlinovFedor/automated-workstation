@@ -1,6 +1,6 @@
 server {
     client_max_body_size 64M;
-    listen 8470;
+    listen ${NGINX_PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -9,7 +9,7 @@ server {
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
     location /api {
-        proxy_pass http://backend:8466;
+        proxy_pass http://backend:${BACKEND_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -19,7 +19,7 @@ server {
     }
 
     location /lessons {
-        proxy_pass http://backend:8466;
+        proxy_pass http://backend:${BACKEND_PORT};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
     }

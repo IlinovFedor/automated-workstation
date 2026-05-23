@@ -15,7 +15,7 @@
 #include "OAIDefaultApi.h"
 #include "OAILesson.h"
 #include "TimetablePainter.h"
-#include "../api/BasePath.h"
+#include "../api/api-consts.h"
 
 #include "../EditorWidgets/LessonEditorWidget.h"
 #include "../EditorWidgets/SearchComboWidget.h"
