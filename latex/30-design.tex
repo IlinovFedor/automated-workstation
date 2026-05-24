@@ -5,12 +5,18 @@
 
 Приложение построено по клиент-серверной архитектуре с единым API-контрактом. Центральным элементом является OpenAPI~3.0 спецификация~\cite{openapi:spec}, описывающая все эндпоинты, типы данных и форматы ответов REST API.
 
+API сервера предоставляет эндпоинты для просмотра расписания в разрезе учебных групп, преподавателей, аудиторий и дисциплин.
+
 Система состоит из нескольких компонентов:
 \begin{enumerate}
+\item \textbf{База данных} (PostgreSQL)---хранение справочных данных и информации о занятиях;
 \item \textbf{Сервер} (Go)---обработка HTTP-запросов, бизнес-логика, работа с базой данных;
 \item \textbf{Десктопный клиент} (C++/Qt6)---нативное приложение для диспетчера;
-\item \textbf{Веб-интерфейс} (React/TypeScript)---публичное приложение для студентов.
 \end{enumerate}
+
+\section{Структура базы данных}
+
+База данных реализована средствами PostgreSQL~16 и включает таблицы: \Code{subgroups}, \Code{teachers}, \Code{locations}, \Code{subjects}, \Code{timetables}, \Code{lessons}, \Code{subgroup\_assignments}, \Code{teacher\_location\_assignments}. Миграции выполняются с помощью goose~\cite{goose:migrate}, генерация type-safe запросов---с помощью sqlc~\cite{sqlc:dev}.
 
 \section{Серверная часть (Go)}
 
@@ -47,8 +53,4 @@
 \item \textbf{OAILocation}---модель данных локации; наследуется от OAIObject.
 \end{itemize}
 
-Аналогичную структуру имеют редакторы SubgroupEditorWidget, TeacherEditorWidget, SubjectEditorWidget, предназначенные для редактирования подгрупп, преподавателей и дисциплин соответственно. Каждый из них зависит от OAIDefaultApi и построен по тому же принципу, что и LocationsEditorWidget.
-
-\section{Структура базы данных}
-
-База данных реализована средствами PostgreSQL~16 и включает таблицы: \Code{subgroups}, \Code{teachers}, \Code{locations}, \Code{subjects}, \Code{timetables}, \Code{lessons}, \Code{subgroup\_assignments}, \Code{teacher\_location\_assignments}. Миграции выполняются с помощью goose~\cite{goose:migrate}, генерация type-safe запросов---с помощью sqlc~\cite{sqlc:dev}.
+Аналогичную структуру имеют и прочие редакторы. Каждый из них зависит от OAIDefaultApi и построен по тому же принципу, что и LocationsEditorWidget.
