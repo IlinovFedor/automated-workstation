@@ -156,12 +156,12 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
 
   // Переход к дате: в ленте — к дню, в неделе — к неделе с этим днём.
   const dateJump = (
-    <label className="icon-btn relative h-full w-10 cursor-pointer" title="Перейти к дате">
+    <label className="icon-btn relative h-full w-10 cursor-pointer overflow-hidden" title="Перейти к дате">
       <CalendarIcon width={21} height={21} />
       <input
         ref={dateInput}
         type="date"
-        className="absolute inset-0 cursor-pointer opacity-0"
+        className="absolute inset-0 h-full w-full min-w-0 cursor-pointer opacity-0"
         value={toDateInputValue(view === 'feed' ? feedStart : monday)}
         onClick={() => dateInput.current?.showPicker?.()}
         onChange={(e) => {
