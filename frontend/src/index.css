@@ -2,25 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Цвета: брендбук ПНИПУ и стиль pstu.ru.
+ * Основной — «космический серый» #1B1F26, всё нажимаемое — синий #002FE7.
+ * Значения — каналы RGB, чтобы Tailwind мог добавлять прозрачность.
+ */
+:root {
+  --page: 255 255 255;
+  --panel: 242 242 243;
+  --ink: 27 31 38;
+  --muted: 110 110 120;
+  --line: 225 225 226;
+  --link: 0 47 231;
+  --accent: 0 47 231;
+  --today: 238 241 254;
+  --now: 255 118 65;
+  color-scheme: light;
+}
+
+.dark {
+  --page: 27 31 38;
+  --panel: 37 42 51;
+  --ink: 242 242 243;
+  --muted: 155 155 165;
+  --line: 50 56 66;
+  --link: 130 151 255;
+  --accent: 0 47 231;
+  --today: 31 39 64;
+  --now: 255 118 65;
+  color-scheme: dark;
+}
+
 html {
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Без «резиновой» отдачи вбок при свайпе: страница ездит только вертикально. */
+html,
+body {
+  overscroll-behavior-x: none;
+  overflow-x: clip;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: rgb(249 250 251);
+  @apply bg-page text-ink font-sans antialiased;
+  margin: 0;
 }
 
-.dark body,
-body.dark {
-  background-color: rgb(17 24 39);
+/* Высота экрана без прыжков адресной строки. */
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+@layer base {
+  :focus-visible {
+    outline: 2px solid rgb(var(--link));
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  /* Плашка типа занятия: цвет из --c, текст из --ci (см. categoryVars). */
+  .lesson-tag {
+    @apply inline-block self-start px-1.5 text-[11px] font-bold leading-[18px];
+    background: var(--c);
+    color: var(--ci);
+  }
+
+  .chip {
+    @apply inline-block bg-panel px-1.5 text-xs leading-5 text-ink;
+  }
+
+  a.chip:hover {
+    @apply text-link;
+  }
+
+  /* Вкладки как на pstu.ru: жирный текст, активная — синяя с подчёркиванием. */
+  .tab {
+    @apply border-b-2 border-transparent pb-1 text-[15px] font-bold text-ink transition-colors hover:text-link;
+  }
+  .tab[aria-selected='true'] {
+    @apply border-link text-link;
+  }
+
+  .icon-btn {
+    @apply inline-flex h-10 w-10 items-center justify-center text-ink transition-colors hover:bg-panel;
+  }
+
+  .text-btn {
+    @apply inline-flex items-center gap-1 text-sm text-link hover:underline;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }

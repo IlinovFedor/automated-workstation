@@ -2,15 +2,27 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#3b82f6" />
-    <meta name="description" content="Расписание ПНИПУ" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>PSTU-S</title>
+    <meta name="description" content="Расписание занятий ПНИПУ" />
+    <link rel="icon" type="image/svg+xml" href="/favicon-grid.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="PSTU-S" />
-    <title>PSTU-S</title>
+    <script>
+      // Тема до загрузки приложения, чтобы не мигал белый экран в тёмной теме.
+      (function () {
+        try {
+          var raw = localStorage.getItem('pstu:theme');
+          var mode = raw ? JSON.parse(raw) : (JSON.parse(localStorage.getItem('pstu-timetable-settings') || '{}').theme || 'system');
+          var dark = mode === 'dark' || (mode !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,52 +1,47 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * Куда `npm run dev` проксирует /api и /lessons. По умолчанию — прод,
+ * для локального бэкенда: DEV_API=http://localhost:8081 npm run dev
+ */
+const devApi = new URL(process.env.DEV_API || 'https://timetables.pslu.ru/api');
+const devApiPath = devApi.pathname.replace(/\/$/, '');
 
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'favicon.svg'],
+      includeAssets: ['favicon-grid.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'PSTU-S',
+        id: '/',
+        name: 'PSTU-S — расписание ПНИПУ',
         short_name: 'PSTU-S',
-        description: 'Расписание ПНИПУ',
-        theme_color: '#3b82f6',
-        background_color: '#ffffff',
+        description: 'Расписание занятий ПНИПУ: лента пар и таблица недели',
+        lang: 'ru',
+        theme_color: '#FFFFFF',
+        background_color: '#FFFFFF',
         display: 'standalone',
-        orientation: 'portrait',
         start_url: '/',
         icons: [
-          {
-            src: 'icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any'
-          }
-        ]
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'pwa-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 12 * 60 * 60 // 12 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
-      }
-    })
+        // В офлайне работает оболочка приложения. Данные расписания всегда
+        // запрашиваются из сети, а без сети приложение берёт сохранённую копию.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/lessons\//],
+        cleanupOutdatedCaches: true,
+      },
+    }),
   ],
   resolve: {
     alias: {
@@ -57,10 +52,15 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:8081',
+        target: devApi.origin,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (p) => p.replace(/^\/api/, devApiPath),
+      },
+      '/lessons': {
+        target: devApi.origin,
+        changeOrigin: true,
+        rewrite: (p) => `${devApiPath}${p}`,
       },
     },
   },
-})
+});

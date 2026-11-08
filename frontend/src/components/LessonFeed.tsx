@@ -1,115 +1,150 @@
-import { useState, useEffect, useRef } from 'react';
-import type { Lesson } from '@/types';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { formatDate, formatDayHeading, formatDuration, WEEKDAY_SHORT } from '@/lib/format';
+import { addDays, occurrencesBetween, sameDay, startOfDay, type Occurrence } from '@/lib/time';
+import type { Lesson, ScheduleContext } from '@/types';
 import { LessonCard } from './LessonCard';
-import { WeekView } from './WeekView';
-import { getLessonsForDate, generateDates, formatDateWithDayOfWeek, isToday } from '@/utils/date';
+
+const CHUNK_DAYS = 21;
+/** Перерыв короче этого — обычная перемена, а не окно. */
+const MIN_WINDOW_MIN = 60;
+
+type FeedItem =
+  | { kind: 'day'; date: Date; occs: Occurrence[] }
+  | { kind: 'empty'; from: Date; to: Date };
 
 interface LessonFeedProps {
   lessons: Lesson[];
-  loading?: boolean;
+  ctx: ScheduleContext;
+  /** С какого дня показывать (локальная полночь). */
+  from: Date;
+  today: Date;
+  onOpen: (occs: Occurrence[]) => void;
 }
 
-export function LessonFeed({ lessons, loading }: LessonFeedProps) {
-  const [daysAfter, setDaysAfter] = useState(14);
-  const [dates, setDates] = useState<Date[]>([]);
-  const [isLandscape, setIsLandscape] = useState(false);
-  
-  const loadMoreAfterRef = useRef<HTMLDivElement>(null);
+export function LessonFeed({ lessons, ctx, from, today, onOpen }: LessonFeedProps) {
+  const [days, setDays] = useState(CHUNK_DAYS);
+  const sentinel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setDays(CHUNK_DAYS), [from]);
+
+  // Дальше конца последнего периода расписания листать незачем.
+  const lastDay = useMemo(() => {
+    const end = Math.max(0, ...lessons.map((l) => Date.parse(l.timetable.date_end) || 0));
+    return startOfDay(new Date(end));
+  }, [lessons]);
+  const to = useMemo(() => {
+    const wanted = addDays(from, days);
+    return wanted > lastDay ? addDays(lastDay, 1) : wanted;
+  }, [from, days, lastDay]);
+  const reachedEnd = addDays(from, days) > lastDay;
+
+  const items = useMemo(() => buildItems(lessons, from, to, today), [lessons, from, to, today]);
 
   useEffect(() => {
-    const checkOrientation = () => {
-      const isLandscapeOrientation = window.matchMedia('(orientation: landscape)').matches;
-      const isWideScreen = window.matchMedia('(min-width: 768px)').matches;
-      setIsLandscape(isLandscapeOrientation && isWideScreen);
-    };
-
-    checkOrientation();
-    
-    const mediaQuery = window.matchMedia('(orientation: landscape)');
-    const wideScreenQuery = window.matchMedia('(min-width: 768px)');
-    
-    const handler = () => checkOrientation();
-    mediaQuery.addEventListener('change', handler);
-    wideScreenQuery.addEventListener('change', handler);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', handler);
-      wideScreenQuery.removeEventListener('change', handler);
-    };
-  }, []);
-
-  useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    setDates(generateDates(today, daysAfter));
-  }, [daysAfter]);
-
-  useEffect(() => {
-    const observerAfter = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading) {
-          setDaysAfter((prev) => prev + 14);
-        }
+    const el = sentinel.current;
+    if (!el || reachedEnd) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setDays((d) => d + CHUNK_DAYS);
       },
-      { threshold: 0.1 }
+      { rootMargin: '800px 0px' },
     );
-
-    if (loadMoreAfterRef.current) {
-      observerAfter.observe(loadMoreAfterRef.current);
-    }
-
-    return () => {
-      observerAfter.disconnect();
-    };
-  }, [loading]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
-
-  if (lessons.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        Расписание не найдено
-      </div>
-    );
-  }
-
-  if (isLandscape) {
-    return <WeekView lessons={lessons} />;
-  }
-
-  const groupedLessons = dates.map((date) => ({
-    date,
-    lessons: getLessonsForDate(lessons, date).sort((a, b) => a.time_start - b.time_start),
-    isToday: isToday(date),
-  }));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reachedEnd, items.length]);
 
   return (
-    <div className="space-y-4">
-      {groupedLessons.map((group) => (
-        <div key={group.date.toISOString()}>
-          <h2 className={`text-sm font-medium mb-2 px-1 ${group.isToday ? 'text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>
-            {group.isToday ? 'Сегодня' : formatDateWithDayOfWeek(group.date)}
-          </h2>
-          {group.lessons.length > 0 ? (
-            <div className="space-y-2">
-              {group.lessons.map((lesson) => (
-                <LessonCard key={lesson.id} lesson={lesson} date={group.date} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-gray-400 dark:text-gray-500 py-2 px-1">
-              Нет занятий
-            </div>
-          )}
-        </div>
-      ))}
-      <div ref={loadMoreAfterRef} className="h-4" />
+    <div className="flex flex-col">
+      {items.map((item) =>
+        item.kind === 'empty' ? (
+          <p key={`e${item.from.getTime()}`} className="border-t border-line py-3 text-sm text-muted">
+            {WEEKDAY_SHORT[item.from.getDay()]}, {formatDate(item.from)} — {WEEKDAY_SHORT[item.to.getDay()]},{' '}
+            {formatDate(item.to)}: пар нет
+          </p>
+        ) : (
+          <section key={`d${item.date.getTime()}`} aria-label={formatDayHeading(item.date, today)}>
+            <h2
+              className={`pb-2 pt-5 text-sm font-bold ${
+                sameDay(item.date, today) ? 'text-link' : 'text-ink'
+              }`}
+            >
+              {formatDayHeading(item.date, today)}
+            </h2>
+            {item.occs.length === 0 ? (
+              <p className="border-t border-line py-3 text-sm text-muted">Пар нет</p>
+            ) : (
+              <DayLessons occs={item.occs} ctx={ctx} onOpen={onOpen} />
+            )}
+          </section>
+        ),
+      )}
+      {reachedEnd ? (
+        <p className="border-t border-line py-6 text-center text-sm text-muted">Дальше пар в расписании нет</p>
+      ) : (
+        <div ref={sentinel} className="h-10" aria-hidden="true" />
+      )}
     </div>
   );
+}
+
+function DayLessons({
+  occs,
+  ctx,
+  onOpen,
+}: {
+  occs: Occurrence[];
+  ctx: ScheduleContext;
+  onOpen: (occs: Occurrence[]) => void;
+}) {
+  let busyUntil = -Infinity;
+  return (
+    <>
+      {occs.map((occ) => {
+        const gap = busyUntil === -Infinity ? 0 : Math.round((occ.start - busyUntil) / 60_000);
+        busyUntil = Math.max(busyUntil, occ.end);
+        return (
+          <Fragment key={occ.key}>
+            {gap >= MIN_WINDOW_MIN && (
+              <div className="border-t border-dashed border-line py-1.5 pl-[60px] text-xs text-muted">
+                Окно {formatDuration(gap)}
+              </div>
+            )}
+            <LessonCard occ={occ} ctx={ctx} onOpen={() => onOpen([occ])} />
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+/** Дни подряд без пар схлопываются в одну строку; сегодняшний день всегда отдельно. */
+function buildItems(lessons: Lesson[], from: Date, to: Date, today: Date): FeedItem[] {
+  const occs = occurrencesBetween(lessons, from, to);
+  const byDay = new Map<number, Occurrence[]>();
+  for (const occ of occs) {
+    const key = startOfDay(new Date(occ.start)).getTime();
+    const list = byDay.get(key);
+    if (list) list.push(occ);
+    else byDay.set(key, [occ]);
+  }
+
+  const items: FeedItem[] = [];
+  let emptyRun: Date[] = [];
+  const flush = () => {
+    if (emptyRun.length === 1) items.push({ kind: 'day', date: emptyRun[0], occs: [] });
+    else if (emptyRun.length > 1) items.push({ kind: 'empty', from: emptyRun[0], to: emptyRun[emptyRun.length - 1] });
+    emptyRun = [];
+  };
+
+  for (let date = startOfDay(from); date < to; date = addDays(date, 1)) {
+    const dayOccs = byDay.get(date.getTime()) ?? [];
+    if (dayOccs.length || sameDay(date, today)) {
+      flush();
+      items.push({ kind: 'day', date, occs: dayOccs });
+    } else {
+      emptyRun.push(date);
+    }
+  }
+  flush();
+  return items;
 }

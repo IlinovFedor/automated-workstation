@@ -1,84 +1,41 @@
-import { Link } from 'react-router-dom';
-import type { Lesson, CATEGORY_COLORS, CATEGORY_LABELS } from '@/types';
-import { formatTimeRange } from '@/utils/date';
+import { categoryVars, formatTime, visibleSubgroups } from '@/lib/format';
+import type { Occurrence } from '@/lib/time';
+import type { ScheduleContext } from '@/types';
+import { AssignmentList, CategoryTag, SubgroupChips } from './LessonParts';
 
 interface LessonCardProps {
-  lesson: Lesson;
-  showDate?: boolean;
-  date?: Date;
+  occ: Occurrence;
+  ctx: ScheduleContext;
+  onOpen: () => void;
 }
 
-const categoryColors: typeof CATEGORY_COLORS = {
-  '(лек)': 'bg-blue-500',
-  '(пр)': 'bg-green-500',
-  '(лаб)': 'bg-orange-500',
-  '(кср)': 'bg-purple-500',
-};
-
-const categoryLabels: typeof CATEGORY_LABELS = {
-  '(лек)': 'Лекция',
-  '(пр)': 'Практика',
-  '(лаб)': 'Лабораторная',
-  '(кср)': 'КСР',
-};
-
-export function LessonCard({ lesson, date }: LessonCardProps) {
-  const categoryColor = categoryColors[lesson.category] || 'bg-gray-500';
-  const categoryLabel = categoryLabels[lesson.category] || lesson.category;
-
+/** Карточка ленты: видно всё; в расписании группы она сама не повторяется среди групп. */
+export function LessonCard({ occ, ctx, onOpen }: LessonCardProps) {
+  const { lesson } = occ;
   return (
-    <Link
-      to={`/lesson/${lesson.id}`}
-      state={{ date }}
-      className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="flex cursor-pointer gap-3 border-t border-line py-3 transition-colors hover:bg-panel/50"
+      style={categoryVars(lesson.category)}
     >
-      <div className="flex">
-        <div className={`${categoryColor} w-1.5 shrink-0`} />
-        <div className="flex-1 p-3">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded ${categoryColor} text-white`}>
-                {categoryLabel}
-              </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {formatTimeRange(lesson.time_start, lesson.time_end)}
-              </span>
-            </div>
-          </div>
-          <h3 className="font-medium text-gray-900 dark:text-white mb-2 line-clamp-2">
-            {lesson.subject.name}
-          </h3>
-          <div className="space-y-1">
-            {lesson.teacher_location_assignments.map((assignment, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <span className="truncate flex-1">{assignment.teacher.name}</span>
-                <span className="text-gray-400">—</span>
-                <Link
-                  to={`/timetable/locations/${assignment.location.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-blue-600 hover:underline shrink-0"
-                >
-                  {assignment.location.name}
-                </Link>
-              </div>
-            ))}
-          </div>
-          {lesson.subgroups.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {lesson.subgroups.map((subgroup) => (
-                <Link
-                  key={subgroup.id}
-                  to={`/timetable/subgroups/${subgroup.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  {subgroup.name}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="w-12 shrink-0 text-sm font-medium leading-tight tabular-nums">
+        {formatTime(occ.start)}
+        <div className="font-normal text-muted">{formatTime(occ.end)}</div>
       </div>
-    </Link>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 border-l-[3px] border-[var(--c)] pl-3">
+        <CategoryTag category={lesson.category} />
+        <h3 className="text-[15px] font-bold leading-snug break-words hyphens-auto">{lesson.subject.name}</h3>
+        <AssignmentList items={lesson.teacher_location_assignments} linked={false} />
+        <SubgroupChips items={visibleSubgroups(lesson, ctx)} linked={false} />
+      </div>
+    </article>
   );
 }
