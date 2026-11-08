@@ -82,7 +82,7 @@ export function SearchPage() {
 
   return (
     <>
-      <AppBar title="PSTU-S" subtitle="Расписание ПНИПУ" menu={() => <ThemeSwitch />} />
+      <AppBar title="PSTU-S" menu={() => <ThemeSwitch />} />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10 pt-6">
         <h2 className="text-[28px] font-bold leading-tight">Расписание</h2>
         <p className="mt-3 text-[15px] leading-relaxed">

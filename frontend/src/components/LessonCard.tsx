@@ -32,7 +32,7 @@ export function LessonCard({ occ, ctx, onOpen }: LessonCardProps) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 border-l-[3px] border-[var(--c)] pl-3">
         <CategoryTag category={lesson.category} />
-        <h3 className="text-[15px] font-bold leading-snug break-words hyphens-auto">{lesson.subject.name}</h3>
+        <h3 className="text-[15px] font-bold leading-snug break-words">{lesson.subject.name}</h3>
         <AssignmentList items={lesson.teacher_location_assignments} linked={false} />
         <SubgroupChips items={visibleSubgroups(lesson, ctx)} linked={false} />
       </div>

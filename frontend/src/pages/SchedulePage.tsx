@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { calendarLinks } from '@/api';
 import { AppBar, MenuSection } from '@/components/AppBar';
-import { CalendarIcon, ChevronLeft, ChevronRight, OfflineIcon, SearchIcon } from '@/components/icons';
+import { CalendarIcon, ChevronLeft, ChevronRight, GridIcon, ListIcon, OfflineIcon, SearchIcon } from '@/components/icons';
 import { LessonFeed } from '@/components/LessonFeed';
 import { LessonSheet } from '@/components/LessonSheet';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
@@ -92,7 +92,7 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
   const menu = (close: () => void) => (
     <>
       {!isSaved && schedule.entity && (
-        <MenuSection title="Это расписание">
+        <MenuSection title={`${TABLE_LABEL[table]}: ${schedule.entity.name}`}>
           <button
             type="button"
             className="text-btn"
@@ -140,28 +140,24 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
   const feedStart = feedFrom ?? today;
   const showTodayButton = view === 'feed' ? !sameDay(feedStart, today) : !sameDay(monday, defaultMonday(now));
 
-  const toolbar = (
-    <div className="border-b border-line bg-page">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3">
-        <div role="tablist" aria-label="Вид расписания" className="flex gap-5">
-          <button type="button" role="tab" className="tab" aria-selected={view === 'feed'} onClick={() => changeView('feed')}>
-            Лента
-          </button>
-          <button type="button" role="tab" className="tab" aria-selected={view === 'week'} onClick={() => changeView('week')}>
-            Неделя
-          </button>
-        </div>
-        <div className="ml-auto flex items-center gap-1 pb-1">
-          {showTodayButton && (
-            <button
-              type="button"
-              className="text-btn mr-2"
-              onClick={() => (view === 'feed' ? setFeedFrom(null) : setMonday(defaultMonday(new Date())))}
-            >
-              Сегодня
-            </button>
-          )}
-          {view === 'feed' ? (
+  const todayButton = showTodayButton && (
+    <button
+      type="button"
+      className="text-btn"
+      onClick={() => (view === 'feed' ? setFeedFrom(null) : setMonday(defaultMonday(new Date())))}
+    >
+      Сегодня
+    </button>
+  );
+
+  // Тонкая строка над содержимым: в ленте — переход к дате, в неделе — листание недель.
+  const subbar = (
+    <div className="flex min-h-10 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1">
+      {view === 'feed' ? (
+        <>
+          {tzNote && <p className="mr-auto text-xs text-muted">{tzNote}</p>}
+          <div className="ml-auto flex items-center gap-4">
+            {todayButton}
             <label className="text-btn relative cursor-pointer">
               <CalendarIcon width={18} height={18} />К дате
               <input
@@ -180,34 +176,59 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
                 aria-label="Перейти к дате"
               />
             </label>
-          ) : (
-            <>
-              <button type="button" className="icon-btn h-8 w-8" aria-label="Предыдущая неделя" onClick={() => setMonday(addDays(monday, -7))}>
-                <ChevronLeft />
-              </button>
-              <span className="min-w-[7.5rem] text-center text-sm font-medium tabular-nums">{formatWeekRange(monday)}</span>
-              <button type="button" className="icon-btn h-8 w-8" aria-label="Следующая неделя" onClick={() => setMonday(addDays(monday, 7))}>
-                <ChevronRight />
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-      {(schedule.staleSince || tzNote) && (
-        <div className="flex flex-col gap-1 px-4 pb-2 pt-1 text-xs">
-          {schedule.staleSince && (
-            <p className="flex items-start gap-2 bg-brand-yellow px-2 py-1.5 text-brand-space">
-              <OfflineIcon width={16} height={16} className="mt-px shrink-0" />
-              <span>
-                Нет связи. Показано расписание от{' '}
-                {new Date(schedule.staleSince).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}
-                , оно могло измениться.
-              </span>
-            </p>
-          )}
-          {tzNote && <p className="text-muted">{tzNote}</p>}
-        </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center">
+            <button type="button" className="icon-btn h-9 w-9" aria-label="Предыдущая неделя" onClick={() => setMonday(addDays(monday, -7))}>
+              <ChevronLeft />
+            </button>
+            <span className="min-w-[7.5rem] text-center text-sm font-medium tabular-nums">{formatWeekRange(monday)}</span>
+            <button type="button" className="icon-btn h-9 w-9" aria-label="Следующая неделя" onClick={() => setMonday(addDays(monday, 7))}>
+              <ChevronRight />
+            </button>
+          </div>
+          {todayButton}
+          {tzNote && <p className="ml-auto text-xs text-muted">{tzNote}</p>}
+        </>
       )}
+    </div>
+  );
+
+  const staleBanner = schedule.staleSince && (
+    <p className="mx-4 mt-2 flex items-start gap-2 bg-brand-yellow px-2 py-1.5 text-xs text-brand-space">
+      <OfflineIcon width={16} height={16} className="mt-px shrink-0" />
+      <span>
+        Нет связи. Показано расписание от{' '}
+        {new Date(schedule.staleSince).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}
+        , оно могло измениться.
+      </span>
+    </p>
+  );
+
+  const viewToggle = (
+    <div role="group" aria-label="Вид расписания" className="mr-1 flex">
+      {(
+        [
+          ['feed', 'Лента', ListIcon],
+          ['week', 'Неделя', GridIcon],
+        ] as const
+      ).map(([value, label, Icon]) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={view === value}
+          aria-label={label}
+          title={label}
+          onClick={() => changeView(value)}
+          className={`flex h-9 w-10 items-center justify-center transition-colors ${
+            view === value ? 'bg-panel text-link' : 'text-muted hover:text-ink'
+          }`}
+        >
+          <Icon width={20} height={20} />
+        </button>
+      ))}
     </div>
   );
 
@@ -251,16 +272,20 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
   return (
     <div className={weekLayout ? 'flex h-dvh flex-col' : 'flex flex-1 flex-col'}>
       <AppBar
-        title={name || ' '}
-        subtitle={TABLE_LABEL[table]}
+        title={name || TABLE_LABEL[table]}
+        autoHide={view === 'feed'}
         actions={
-          <Link to="/search" className="icon-btn h-full w-12" aria-label="Найти другое расписание">
-            <SearchIcon width={22} height={22} />
-          </Link>
+          <>
+            {viewToggle}
+            <Link to="/search" className="icon-btn h-full w-11" aria-label="Найти другое расписание">
+              <SearchIcon width={22} height={22} />
+            </Link>
+          </>
         }
         menu={menu}
       />
-      {toolbar}
+      {staleBanner}
+      {!schedule.loading && !schedule.error && schedule.lessons.length > 0 && subbar}
       {content}
       {sheetItems && <LessonSheet items={sheetItems} onClose={closeSheet} />}
     </div>

@@ -26,7 +26,7 @@ export function LessonDetails({ lesson, start, end }: { lesson: Lesson; start?: 
   return (
     <article className="flex flex-col gap-2" style={categoryVars(lesson.category)}>
       <CategoryTag category={lesson.category} />
-      <h2 className="text-lg font-bold leading-snug break-words hyphens-auto">
+      <h2 className="text-lg font-bold leading-snug break-words">
         <Link to={scheduleHref('subjects', lesson.subject.id)} className="hover:text-link">
           {lesson.subject.name}
         </Link>

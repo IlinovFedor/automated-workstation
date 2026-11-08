@@ -63,3 +63,15 @@ export const OfflineIcon = (p: IconProps) => (
     <path d="M12 20h.01" />
   </Icon>
 );
+
+export const ListIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 6h2M9 6h11M4 12h2M9 12h11M4 18h2M9 18h11" />
+  </Icon>
+);
+
+export const GridIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 4h16v16H4zM9.33 4v16M14.67 4v16M4 10h16" />
+  </Icon>
+);
