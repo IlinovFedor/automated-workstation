@@ -36,7 +36,7 @@ export function AppBar({ title, actions, menu, autoHide = false }: AppBarProps) 
   return (
     <header
       ref={ref}
-      className={`pt-safe sticky top-0 z-30 border-b border-line bg-page transition-transform duration-200 ${
+      className={`pt-safe sticky top-0 z-40 border-b border-line bg-page transition-transform duration-200 ${
         hidden ? '-translate-y-full' : ''
       }`}
     >

@@ -92,7 +92,7 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
   const menu = (close: () => void) => (
     <>
       {!isSaved && schedule.entity && (
-        <MenuSection title={`${TABLE_LABEL[table]}: ${schedule.entity.name}`}>
+        <MenuSection title={TABLE_LABEL[table]}>
           <button
             type="button"
             className="text-btn"
@@ -147,7 +147,7 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
     <button
       type="button"
       onClick={goToday}
-      className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 bg-ink px-5 py-2.5 text-sm font-medium text-page shadow-[0_6px_20px_rgb(0_0_0/0.25)]"
+      className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 bg-ink px-5 py-2.5 text-sm font-medium text-page shadow-[0_6px_20px_rgb(0_0_0/0.25)]"
       style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       Сегодня

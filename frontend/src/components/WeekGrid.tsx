@@ -88,7 +88,7 @@ export function WeekGrid({ lessons, ctx, monday, now, desktop, onOpen, onPrev, o
   const nowTop = (localMinutes(now.getTime()) - fromHour * 60) * pxPerMin;
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div className="relative isolate flex min-h-0 flex-1 flex-col">
       {/* Листание недель — в строке дней: ‹ в углу над временем, › у правого края. */}
       <button
         type="button"
