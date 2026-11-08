@@ -76,8 +76,8 @@ export function calendarLinks(table: TableType, id: number) {
   return {
     https,
     webcal,
-    // addbyurl?url= Google больше не подставляет; render?cid= сразу предлагает подписаться.
-    // Передаём https: webcal:// Google превращает в http://, а там редирект, который он не всегда проходит.
-    google: `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(https)}`,
+    // addbyurl?url= Google больше не подставляет. render?cid= сразу предлагает подписаться,
+    // но принимает только webcal:// (с https:// отвечает «Unable to add calendar»).
+    google: `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`,
   };
 }
