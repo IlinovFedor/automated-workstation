@@ -5,8 +5,8 @@ import type { Lesson, ScheduleContext } from '@/types';
 import { LessonCard } from './LessonCard';
 
 const CHUNK_DAYS = 21;
-/** Перерыв короче этого — обычная перемена, а не окно. */
-const MIN_WINDOW_MIN = 60;
+/** Перемены в ПНИПУ — 10 и 20 минут; всё, что длиннее, — окно. */
+const MAX_BREAK_MIN = 20;
 
 type FeedItem =
   | { kind: 'day'; date: Date; occs: Occurrence[] }
@@ -104,7 +104,7 @@ function DayLessons({
         busyUntil = Math.max(busyUntil, occ.end);
         return (
           <Fragment key={occ.key}>
-            {gap >= MIN_WINDOW_MIN && (
+            {gap > MAX_BREAK_MIN && (
               <div className="border-t border-dashed border-line py-1.5 pl-[60px] text-xs text-muted">
                 Окно {formatDuration(gap)}
               </div>
