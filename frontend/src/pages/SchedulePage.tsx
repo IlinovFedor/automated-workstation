@@ -2,12 +2,12 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { calendarLinks } from '@/api';
 import { AppBar, MenuSection } from '@/components/AppBar';
-import { CalendarIcon, ChevronLeft, ChevronRight, GridIcon, ListIcon, OfflineIcon, SearchIcon } from '@/components/icons';
+import { CalendarIcon, GridIcon, ListIcon, OfflineIcon, SearchIcon } from '@/components/icons';
 import { LessonFeed } from '@/components/LessonFeed';
 import { LessonSheet } from '@/components/LessonSheet';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { WeekGrid } from '@/components/WeekGrid';
-import { TABLE_LABEL, formatWeekRange } from '@/lib/format';
+import { TABLE_LABEL } from '@/lib/format';
 import { useIsDesktop, useNow, useSchedule } from '@/lib/hooks';
 import { getSaved, getViewMode, setSaved, setViewMode } from '@/lib/storage';
 import {
@@ -140,60 +140,43 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
   const feedStart = feedFrom ?? today;
   const showTodayButton = view === 'feed' ? !sameDay(feedStart, today) : !sameDay(monday, defaultMonday(now));
 
-  const todayButton = showTodayButton && (
+  const goToday = () => (view === 'feed' ? setFeedFrom(null) : setMonday(defaultMonday(new Date())));
+
+  // Появляется, только если ушли от сегодняшнего дня или недели.
+  const todayFab = showTodayButton && (
     <button
       type="button"
-      className="text-btn"
-      onClick={() => (view === 'feed' ? setFeedFrom(null) : setMonday(defaultMonday(new Date())))}
+      onClick={goToday}
+      className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 bg-ink px-5 py-2.5 text-sm font-medium text-page shadow-[0_6px_20px_rgb(0_0_0/0.25)]"
+      style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       Сегодня
     </button>
   );
 
-  // Тонкая строка над содержимым: в ленте — переход к дате, в неделе — листание недель.
-  const subbar = (
-    <div className="flex min-h-10 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1">
-      {view === 'feed' ? (
-        <>
-          {tzNote && <p className="mr-auto text-xs text-muted">{tzNote}</p>}
-          <div className="ml-auto flex items-center gap-4">
-            {todayButton}
-            <label className="text-btn relative cursor-pointer">
-              <CalendarIcon width={18} height={18} />К дате
-              <input
-                ref={dateInput}
-                type="date"
-                className="absolute inset-0 cursor-pointer opacity-0"
-                value={toDateInputValue(feedStart)}
-                onClick={() => dateInput.current?.showPicker?.()}
-                onChange={(e) => {
-                  const d = fromDateInputValue(e.target.value);
-                  if (d) {
-                    setFeedFrom(sameDay(d, today) ? null : d);
-                    window.scrollTo({ top: 0 });
-                  }
-                }}
-                aria-label="Перейти к дате"
-              />
-            </label>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="flex items-center">
-            <button type="button" className="icon-btn h-9 w-9" aria-label="Предыдущая неделя" onClick={() => setMonday(addDays(monday, -7))}>
-              <ChevronLeft />
-            </button>
-            <span className="min-w-[7.5rem] text-center text-sm font-medium tabular-nums">{formatWeekRange(monday)}</span>
-            <button type="button" className="icon-btn h-9 w-9" aria-label="Следующая неделя" onClick={() => setMonday(addDays(monday, 7))}>
-              <ChevronRight />
-            </button>
-          </div>
-          {todayButton}
-          {tzNote && <p className="ml-auto text-xs text-muted">{tzNote}</p>}
-        </>
-      )}
-    </div>
+  // Переход к дате: в ленте — к дню, в неделе — к неделе с этим днём.
+  const dateJump = (
+    <label className="icon-btn relative h-full w-10 cursor-pointer" title="Перейти к дате">
+      <CalendarIcon width={21} height={21} />
+      <input
+        ref={dateInput}
+        type="date"
+        className="absolute inset-0 cursor-pointer opacity-0"
+        value={toDateInputValue(view === 'feed' ? feedStart : monday)}
+        onClick={() => dateInput.current?.showPicker?.()}
+        onChange={(e) => {
+          const d = fromDateInputValue(e.target.value);
+          if (!d) return;
+          if (view === 'feed') {
+            setFeedFrom(sameDay(d, today) ? null : d);
+            window.scrollTo({ top: 0 });
+          } else {
+            setMonday(mondayOfLocal(d));
+          }
+        }}
+        aria-label="Перейти к дате"
+      />
+    </label>
   );
 
   const staleBanner = schedule.staleSince && (
@@ -222,7 +205,7 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
           aria-label={label}
           title={label}
           onClick={() => changeView(value)}
-          className={`flex h-9 w-10 items-center justify-center transition-colors ${
+          className={`flex h-9 w-9 items-center justify-center transition-colors ${
             view === value ? 'bg-panel text-link' : 'text-muted hover:text-ink'
           }`}
         >
@@ -257,11 +240,21 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
     );
   } else if (view === 'week') {
     content = (
-      <WeekGrid lessons={schedule.lessons} ctx={ctx} monday={monday} now={now} desktop={desktop} onOpen={openSheet} />
+      <WeekGrid
+        lessons={schedule.lessons}
+        ctx={ctx}
+        monday={monday}
+        now={now}
+        desktop={desktop}
+        onOpen={openSheet}
+        onPrev={() => setMonday(addDays(monday, -7))}
+        onNext={() => setMonday(addDays(monday, 7))}
+      />
     );
   } else {
     content = (
       <main className="mx-auto w-full max-w-2xl px-4 pb-10">
+        {tzNote && <p className="pt-3 text-xs text-muted">{tzNote}</p>}
         <LessonFeed lessons={schedule.lessons} ctx={ctx} from={feedStart} today={today} onOpen={openSheet} />
       </main>
     );
@@ -277,7 +270,8 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
         actions={
           <>
             {viewToggle}
-            <Link to="/search" className="icon-btn h-full w-11" aria-label="Найти другое расписание">
+            {dateJump}
+            <Link to="/search" className="icon-btn h-full w-10" aria-label="Найти другое расписание">
               <SearchIcon width={22} height={22} />
             </Link>
           </>
@@ -285,8 +279,8 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
         menu={menu}
       />
       {staleBanner}
-      {!schedule.loading && !schedule.error && schedule.lessons.length > 0 && subbar}
       {content}
+      {!schedule.loading && !schedule.error && schedule.lessons.length > 0 && todayFab}
       {sheetItems && <LessonSheet items={sheetItems} onClose={closeSheet} />}
     </div>
   );

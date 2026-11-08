@@ -10,11 +10,13 @@ import {
   type Occurrence,
 } from '@/lib/time';
 import type { Lesson, ScheduleContext } from '@/types';
+import { ChevronLeft, ChevronRight } from './icons';
 
 const TIME_COL = 40;
 const HEAD = 44;
 /** На телефоне на экране три дня, остальные — свайпом. */
 const PHONE_DAYS = 3;
+const MONTH_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 interface WeekGridProps {
   lessons: Lesson[];
@@ -23,9 +25,11 @@ interface WeekGridProps {
   now: Date;
   desktop: boolean;
   onOpen: (occs: Occurrence[]) => void;
+  onPrev: () => void;
+  onNext: () => void;
 }
 
-export function WeekGrid({ lessons, ctx, monday, now, desktop, onOpen }: WeekGridProps) {
+export function WeekGrid({ lessons, ctx, monday, now, desktop, onOpen, onPrev, onNext }: WeekGridProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const pxPerMin = desktop ? 1.1 : 1;
@@ -84,72 +88,94 @@ export function WeekGrid({ lessons, ctx, monday, now, desktop, onOpen }: WeekGri
   const nowTop = (localMinutes(now.getTime()) - fromHour * 60) * pxPerMin;
 
   return (
-    <div
-      ref={scroller}
-      className={`min-h-0 flex-1 overflow-auto overscroll-none ${desktop ? '' : 'snap-x snap-mandatory'}`}
-    >
-      <div
-        className="relative grid"
-        style={{
-          gridTemplateColumns: `${TIME_COL}px repeat(${days.length}, ${colW}px)`,
-          gridTemplateRows: `${HEAD}px ${total}px`,
-          width: TIME_COL + colW * days.length,
-        }}
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* Листание недель — в строке дней: ‹ в углу над временем, › у правого края. */}
+      <button
+        type="button"
+        onClick={onPrev}
+        aria-label="Предыдущая неделя"
+        className="absolute left-0 top-0 z-40 flex items-center justify-center border-b border-r border-line bg-page text-ink hover:bg-panel"
+        style={{ width: TIME_COL, height: HEAD }}
       >
-        <div className="sticky left-0 top-0 z-30 border-b border-line bg-page" />
-        {days.map((day, i) => (
-          <div
-            key={day.getTime()}
-            className={`sticky top-0 z-20 flex snap-start flex-col items-center justify-center border-b border-l border-line ${
-              i === todayIdx ? 'bg-today' : 'bg-page'
-            }`}
-            style={{ scrollMarginLeft: TIME_COL }}
-          >
-            <span className="text-[11px] text-muted">{WEEKDAY_SHORT[day.getDay()]}</span>
-            <span className={`text-[15px] font-bold tabular-nums ${i === todayIdx ? 'text-link' : ''}`}>
-              {day.getDate()}
-            </span>
-          </div>
-        ))}
-
-        <div className="sticky left-0 z-10 border-r border-line bg-page">
-          {Array.from({ length: toHour - fromHour - 1 }, (_, i) => fromHour + i + 1).map((h) => (
-            <span
-              key={h}
-              className="absolute right-1.5 -translate-y-1/2 text-[10px] tabular-nums text-muted"
-              style={{ top: (h - fromHour) * 60 * pxPerMin }}
+        <ChevronLeft />
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        aria-label="Следующая неделя"
+        className="absolute right-0 top-0 z-40 flex w-9 items-center justify-center border-b border-l border-line bg-page/95 text-ink hover:bg-panel"
+        style={{ height: HEAD }}
+      >
+        <ChevronRight />
+      </button>
+      <div
+        ref={scroller}
+        className={`min-h-0 flex-1 overflow-auto overscroll-none ${desktop ? '' : 'snap-x snap-mandatory'}`}
+      >
+        <div
+          className="relative grid"
+          style={{
+            gridTemplateColumns: `${TIME_COL}px repeat(${days.length}, ${colW}px)`,
+            gridTemplateRows: `${HEAD}px ${total}px`,
+            width: TIME_COL + colW * days.length,
+          }}
+        >
+          <div className="sticky left-0 top-0 z-30 border-b border-line bg-page" />
+          {days.map((day, i) => (
+            <div
+              key={day.getTime()}
+              className={`sticky top-0 z-20 flex snap-start flex-col items-center justify-center border-b border-l border-line ${
+                i === todayIdx ? 'bg-today' : 'bg-page'
+              }`}
+              style={{ scrollMarginLeft: TIME_COL }}
             >
-              {h}:00
-            </span>
+              <span className="text-[11px] text-muted">{WEEKDAY_SHORT[day.getDay()]}</span>
+              <span className={`text-[15px] font-bold tabular-nums ${i === todayIdx ? 'text-link' : ''}`}>
+                {day.getDate()}{' '}
+                <span className="text-[11px] font-normal text-muted">{MONTH_SHORT[day.getMonth()]}</span>
+              </span>
+            </div>
+          ))}
+
+          <div className="sticky left-0 z-10 border-r border-line bg-page">
+            {Array.from({ length: toHour - fromHour - 1 }, (_, i) => fromHour + i + 1).map((h) => (
+              <span
+                key={h}
+                className="absolute right-1.5 -translate-y-1/2 text-[10px] tabular-nums text-muted"
+                style={{ top: (h - fromHour) * 60 * pxPerMin }}
+              >
+                {h}:00
+              </span>
+            ))}
+          </div>
+
+          {days.map((day, i) => (
+            <div
+              key={day.getTime()}
+              className={`relative border-l border-line ${i === todayIdx ? 'bg-today/60' : ''}`}
+              style={{
+                backgroundImage: `repeating-linear-gradient(to bottom, rgb(var(--line)) 0 1px, transparent 1px ${60 * pxPerMin}px)`,
+              }}
+            >
+              {clustersByDay[i].map((cluster) => (
+                <ClusterCells
+                  key={cluster.items[0].occ.key}
+                  cluster={cluster}
+                  ctx={ctx}
+                  desktop={desktop}
+                  top={(m) => (m - fromHour * 60) * pxPerMin}
+                  pxPerMin={pxPerMin}
+                  onOpen={onOpen}
+                />
+              ))}
+              {i === todayIdx && nowTop > 0 && nowTop < total && (
+                <div className="pointer-events-none absolute inset-x-0 z-10 h-0.5 bg-now" style={{ top: nowTop }}>
+                  <span className="absolute -left-1 -top-[3px] h-2 w-2 bg-now" />
+                </div>
+              )}
+            </div>
           ))}
         </div>
-
-        {days.map((day, i) => (
-          <div
-            key={day.getTime()}
-            className={`relative border-l border-line ${i === todayIdx ? 'bg-today/60' : ''}`}
-            style={{
-              backgroundImage: `repeating-linear-gradient(to bottom, rgb(var(--line)) 0 1px, transparent 1px ${60 * pxPerMin}px)`,
-            }}
-          >
-            {clustersByDay[i].map((cluster) => (
-              <ClusterCells
-                key={cluster.items[0].occ.key}
-                cluster={cluster}
-                ctx={ctx}
-                desktop={desktop}
-                top={(m) => (m - fromHour * 60) * pxPerMin}
-                pxPerMin={pxPerMin}
-                onOpen={onOpen}
-              />
-            ))}
-            {i === todayIdx && nowTop > 0 && nowTop < total && (
-              <div className="pointer-events-none absolute inset-x-0 z-10 h-0.5 bg-now" style={{ top: nowTop }}>
-                <span className="absolute -left-1 -top-[3px] h-2 w-2 bg-now" />
-              </div>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );

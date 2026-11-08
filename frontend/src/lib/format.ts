@@ -114,12 +114,6 @@ export function formatWeekday(date: Date): string {
   return capitalize(WEEKDAY[date.getDay()]);
 }
 
-export function formatWeekRange(monday: Date): string {
-  const sunday = addDays(monday, 6);
-  if (monday.getMonth() === sunday.getMonth()) return `${monday.getDate()}–${formatDate(sunday)}`;
-  return `${formatDate(monday)} – ${formatDate(sunday)}`;
-}
-
 /* ---------- Контекст: чьё это расписание ---------- */
 
 /**
