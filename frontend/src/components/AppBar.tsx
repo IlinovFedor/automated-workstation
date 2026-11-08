@@ -1,9 +1,13 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { MenuIcon, CloseIcon } from './icons';
+import { Link } from 'react-router-dom';
+import { ChevronDown, MenuIcon, CloseIcon } from './icons';
 
 interface AppBarProps {
   /** Одна строка; длинное название обрезается многоточием. */
   title: string;
+  /** Если задано, название — ссылка со стрелкой ▾ (например, на выбор другого расписания). */
+  titleHref?: string;
+  titleHint?: string;
   actions?: ReactNode;
   /** Содержимое меню за синей квадратной кнопкой, как на pstu.ru. */
   menu: (close: () => void) => ReactNode;
@@ -11,7 +15,7 @@ interface AppBarProps {
   autoHide?: boolean;
 }
 
-export function AppBar({ title, actions, menu, autoHide = false }: AppBarProps) {
+export function AppBar({ title, titleHref, titleHint, actions, menu, autoHide = false }: AppBarProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLElement>(null);
   const menuId = useId();
@@ -41,8 +45,22 @@ export function AppBar({ title, actions, menu, autoHide = false }: AppBarProps) 
       }`}
     >
       <div className="flex h-[52px] items-stretch">
-        <h1 className="flex min-w-0 flex-1 items-center pl-4 pr-2 text-[17px] font-bold" title={title}>
-          <span className="truncate">{title}</span>
+        <h1 className="flex min-w-0 flex-1 items-stretch text-[17px] font-bold">
+          {titleHref ? (
+            <Link
+              to={titleHref}
+              className="flex min-w-0 items-center gap-1 pl-4 pr-2 transition-colors hover:bg-panel"
+              title={titleHint ? `${title} — ${titleHint.toLowerCase()}` : title}
+              aria-label={titleHint ? `${title}. ${titleHint}` : title}
+            >
+              <span className="truncate">{title}</span>
+              <ChevronDown width={18} height={18} className="shrink-0 text-muted" />
+            </Link>
+          ) : (
+            <span className="flex min-w-0 items-center pl-4 pr-2" title={title}>
+              <span className="truncate">{title}</span>
+            </span>
+          )}
         </h1>
         {actions && <div className="flex items-center">{actions}</div>}
         <button

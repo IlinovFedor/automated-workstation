@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { calendarLinks } from '@/api';
 import { AppBar, MenuSection } from '@/components/AppBar';
-import { CalendarIcon, GridIcon, ListIcon, OfflineIcon, SearchIcon } from '@/components/icons';
+import { CalendarIcon, GridIcon, ListIcon, OfflineIcon } from '@/components/icons';
 import { LessonFeed } from '@/components/LessonFeed';
 import { LessonSheet } from '@/components/LessonSheet';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
@@ -266,14 +266,13 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
     <div className={weekLayout ? 'flex h-dvh flex-col' : 'flex flex-1 flex-col'}>
       <AppBar
         title={name || TABLE_LABEL[table]}
+        titleHref="/search"
+        titleHint="Выбрать другое расписание"
         autoHide={view === 'feed'}
         actions={
           <>
             {viewToggle}
             {dateJump}
-            <Link to="/search" className="icon-btn h-full w-10" aria-label="Найти другое расписание">
-              <SearchIcon width={22} height={22} />
-            </Link>
           </>
         }
         menu={menu}

@@ -75,3 +75,9 @@ export const GridIcon = (p: IconProps) => (
     <path d="M4 4h16v16H4zM9.33 4v16M14.67 4v16M4 10h16" />
   </Icon>
 );
+
+export const ChevronDown = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </Icon>
+);
