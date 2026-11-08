@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { calendarLinks } from '@/api';
-import { AppBar, MenuSection } from '@/components/AppBar';
+import { AppBar, MenuSection, Segmented } from '@/components/AppBar';
 import { CalendarIcon, GridIcon, ListIcon, OfflineIcon } from '@/components/icons';
 import { LessonFeed } from '@/components/LessonFeed';
 import { LessonSheet } from '@/components/LessonSheet';
@@ -91,6 +91,20 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
 
   const menu = (close: () => void) => (
     <>
+      <MenuSection title="Вид">
+        <Segmented
+          label="Вид расписания"
+          value={view}
+          options={[
+            { value: 'feed', label: <><ListIcon width={18} height={18} />Лента</> },
+            { value: 'week', label: <><GridIcon width={18} height={18} />Неделя</> },
+          ]}
+          onChange={(next) => {
+            changeView(next);
+            close();
+          }}
+        />
+      </MenuSection>
       {!isSaved && schedule.entity && (
         <MenuSection title={TABLE_LABEL[table]}>
           <button
@@ -190,31 +204,6 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
     </p>
   );
 
-  const viewToggle = (
-    <div role="group" aria-label="Вид расписания" className="mr-1 flex">
-      {(
-        [
-          ['feed', 'Лента', ListIcon],
-          ['week', 'Неделя', GridIcon],
-        ] as const
-      ).map(([value, label, Icon]) => (
-        <button
-          key={value}
-          type="button"
-          aria-pressed={view === value}
-          aria-label={label}
-          title={label}
-          onClick={() => changeView(value)}
-          className={`flex h-9 w-9 items-center justify-center transition-colors ${
-            view === value ? 'bg-panel text-link' : 'text-muted hover:text-ink'
-          }`}
-        >
-          <Icon width={20} height={20} />
-        </button>
-      ))}
-    </div>
-  );
-
   /* ---------- Содержимое ---------- */
 
   let content;
@@ -269,12 +258,7 @@ function Schedule({ table, id }: { table: TableType; id: number }) {
         titleHref="/search"
         titleHint="Выбрать другое расписание"
         autoHide={view === 'feed'}
-        actions={
-          <>
-            {viewToggle}
-            {dateJump}
-          </>
-        }
+        actions={dateJump}
         menu={menu}
       />
       {staleBanner}

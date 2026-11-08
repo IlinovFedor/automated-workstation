@@ -126,3 +126,40 @@ export function MenuSection({ title, children }: { title: string; children: Reac
     </section>
   );
 }
+
+/** Переключатель в меню: несколько вариантов, выбранный — синий. */
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: ReactNode }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div
+      className="grid border border-line"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      role="radiogroup"
+      aria-label={label}
+    >
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={`flex items-center justify-center gap-1.5 px-2 py-2 text-[13px] font-medium transition-colors ${
+            value === o.value ? 'bg-accent text-white' : 'text-ink hover:bg-panel'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
