@@ -9,21 +9,15 @@ interface LessonCardProps {
   onOpen: () => void;
 }
 
-/** Карточка ленты: видно всё; в расписании группы она сама не повторяется среди групп. */
+/**
+ * Карточка ленты: видно всё; в расписании группы она сама не повторяется среди групп.
+ * Нажимается целиком: кнопка на названии растянута на всю карточку, скринридер читает только название.
+ */
 export function LessonCard({ occ, ctx, onOpen }: LessonCardProps) {
   const { lesson } = occ;
   return (
     <article
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen();
-        }
-      }}
-      className="flex cursor-pointer gap-3 border-t border-line py-3 transition-colors hover:bg-panel/50"
+      className="relative flex gap-3 border-t border-line py-3 outline-2 outline-offset-[-2px] outline-link transition-colors hover:bg-panel/50 [&:has(:focus-visible)]:outline"
       style={categoryVars(lesson.category)}
     >
       <div className="w-12 shrink-0 text-sm font-medium leading-tight tabular-nums">
@@ -32,7 +26,15 @@ export function LessonCard({ occ, ctx, onOpen }: LessonCardProps) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 border-l-[3px] border-[var(--c)] pl-3">
         <CategoryTag category={lesson.category} />
-        <h3 className="text-[15px] font-bold leading-snug break-words">{lesson.subject.name}</h3>
+        <h3 className="text-[15px] font-bold leading-snug break-words">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+          >
+            {lesson.subject.name}
+          </button>
+        </h3>
         <AssignmentList items={lesson.teacher_location_assignments} linked={false} />
         <SubgroupChips items={visibleSubgroups(lesson, ctx)} linked={false} />
       </div>

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { WEEKDAY_SHORT, categoryVars, formatTime, plural } from '@/lib/format';
+import { WEEKDAY_SHORT, categoryStyle, categoryVars, formatTime, plural } from '@/lib/format';
 import {
   addDays,
   clusterOccurrences,
@@ -253,16 +253,18 @@ function Cell({
   const { lesson } = occ;
   const assignments = lesson.teacher_location_assignments;
   const single = assignments.length === 1 ? assignments[0] : null;
+  const type = categoryStyle(lesson.category);
   return (
     <button
       type="button"
       onClick={onClick}
       className="absolute z-[5] flex flex-col gap-px overflow-hidden border-l-[3px] border-[var(--c)] bg-[color-mix(in_srgb,var(--c)_16%,rgb(var(--page)))] px-1 py-0.5 text-left transition-[filter] hover:brightness-95 dark:hover:brightness-110"
       style={{ ...categoryVars(lesson.category), ...style }}
-      aria-label={`${lesson.subject.name}, ${formatTime(occ.start)}–${formatTime(occ.end)}${extra ? `, ещё ${extra} в это время` : ''}`}
+      aria-label={`${type.label}: ${lesson.subject.name}, ${formatTime(occ.start)}–${formatTime(occ.end)}${extra ? `, ещё ${extra} в это время` : ''}`}
     >
-      <span className="text-[10px] leading-tight tabular-nums text-muted">
-        {formatTime(occ.start)}–{formatTime(occ.end)}
+      {/* Тип словом, а не только цветом; время цветом основного текста — контраст на тонированном фоне. */}
+      <span className="truncate text-[10.5px] leading-tight tabular-nums text-ink">
+        <b className="font-bold">{type.short}</b> · {formatTime(occ.start)}–{formatTime(occ.end)}
       </span>
       <span className="line-clamp-3 text-[11px] font-bold leading-[1.2] break-words hyphens-auto md:text-xs">
         {lesson.subject.name}

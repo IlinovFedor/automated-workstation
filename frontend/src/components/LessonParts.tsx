@@ -25,14 +25,14 @@ export function AssignmentList({ items, linked = true }: { items: TeacherLocatio
           <MaybeLink
             to={linked ? scheduleHref('teachers', a.teacher.id) : null}
             className="min-w-0 flex-1 text-muted [overflow-wrap:anywhere]"
-            linkClassName="hover:text-link"
+            linkClassName="link-underline hover:text-link"
           >
             {a.teacher.name}
           </MaybeLink>
           <MaybeLink
             to={linked ? scheduleHref('locations', a.location.id) : null}
             className={`max-w-[55%] shrink-0 text-right [overflow-wrap:anywhere] ${linked ? 'text-link' : 'text-ink'}`}
-            linkClassName="hover:underline"
+            linkClassName="link-underline"
           >
             {a.location.name}
           </MaybeLink>
@@ -47,7 +47,12 @@ export function SubgroupChips({ items, linked = true }: { items: Entity[]; linke
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((s) => (
-        <MaybeLink key={s.id} to={linked ? scheduleHref('subgroups', s.id) : null} className="chip">
+        <MaybeLink
+          key={s.id}
+          to={linked ? scheduleHref('subgroups', s.id) : null}
+          className="chip"
+          linkClassName="link-underline"
+        >
           {s.name}
         </MaybeLink>
       ))}

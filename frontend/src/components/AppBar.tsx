@@ -19,7 +19,8 @@ export function AppBar({ title, titleHref, titleHint, actions, menu, autoHide = 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLElement>(null);
   const menuId = useId();
-  const hidden = useHideOnScroll(autoHide && !open);
+  const [focusInside, setFocusInside] = useState(false);
+  const hidden = useHideOnScroll(autoHide && !open && !focusInside);
 
   useEffect(() => {
     if (!open) return;
@@ -40,6 +41,10 @@ export function AppBar({ title, titleHref, titleHint, actions, menu, autoHide = 
   return (
     <header
       ref={ref}
+      onFocus={() => setFocusInside(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusInside(false);
+      }}
       className={`pt-safe sticky top-0 z-40 border-b border-line bg-page transition-transform duration-200 ${
         hidden ? '-translate-y-full' : ''
       }`}

@@ -75,11 +75,21 @@ body {
 }
 
 @layer components {
-  /* Плашка типа занятия: цвет из --c, текст из --ci (см. categoryVars). */
+  /* Плашка типа занятия: бледный фон цвета типа (--c), текст обычного цвета — читается у всех типов. */
   .lesson-tag {
-    @apply inline-block self-start px-1.5 text-[11px] font-bold leading-[18px];
-    background: var(--c);
-    color: var(--ci);
+    @apply inline-block self-start px-1.5 text-[11px] font-bold leading-[18px] text-ink;
+    background: color-mix(in srgb, var(--c) 22%, rgb(var(--page)));
+  }
+
+  /* Ссылка не только цветом: тонкое приглушённое подчёркивание. */
+  .link-underline {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  }
+  .link-underline:hover {
+    text-decoration-color: currentColor;
   }
 
   .chip {

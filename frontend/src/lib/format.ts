@@ -6,32 +6,29 @@ import { addDays, sameDay } from './time';
 
 interface CategoryStyle {
   label: string;
+  /** Сокращение для узкой ячейки недели. */
+  short: string;
   color: string;
-  ink: string;
 }
 
 const CATEGORIES: Record<string, CategoryStyle> = {
-  '(лек)': { label: 'Лекция', color: '#002FE7', ink: '#FFFFFF' },
-  '(пр)': { label: 'Практика', color: '#FF7641', ink: '#1B1F26' },
-  '(лаб)': { label: 'Лабораторная', color: '#968AE1', ink: '#1B1F26' },
-  '(кср)': { label: 'КСР', color: '#FFF854', ink: '#1B1F26' },
+  '(лек)': { label: 'Лекция', short: 'Лек', color: '#002FE7' },
+  '(пр)': { label: 'Практика', short: 'Пр', color: '#FF7641' },
+  '(лаб)': { label: 'Лабораторная', short: 'Лаб', color: '#968AE1' },
+  '(кср)': { label: 'КСР', short: 'КСР', color: '#FFF854' },
 };
 
 export function categoryStyle(category: string): CategoryStyle {
   const known = CATEGORIES[category];
   if (known) return known;
   const raw = category.replace(/[()]/g, '').trim();
-  return {
-    label: raw ? raw[0].toUpperCase() + raw.slice(1) : 'Занятие',
-    color: '#81818B',
-    ink: '#FFFFFF',
-  };
+  const label = raw ? raw[0].toUpperCase() + raw.slice(1) : 'Занятие';
+  return { label, short: label.length > 5 ? `${label.slice(0, 4)}.` : label, color: '#81818B' };
 }
 
-/** CSS-переменные --c (цвет типа) и --ci (цвет текста на нём). */
+/** CSS-переменная --c — цвет типа занятия (полоски, бледный фон плашки и ячейки). */
 export function categoryVars(category: string): CSSProperties {
-  const { color, ink } = categoryStyle(category);
-  return { '--c': color, '--ci': ink } as CSSProperties;
+  return { '--c': categoryStyle(category).color } as CSSProperties;
 }
 
 /* ---------- Подписи ---------- */
